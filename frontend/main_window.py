@@ -1,0 +1,459 @@
+import tkinter as tk
+from tkinter import Menu, messagebox
+import cv2
+import numpy as np
+
+from frontend.image_viewer import ImageViewer
+from frontend.histogram import HistogramViewer
+from frontend.dialogs.threshold_dialog import ThresholdDialog
+from frontend.dialogs.posterize_dialog import PosterizeDialog
+from frontend.dialogs.stretch_dialog import StretchDialog
+from backend.AppManager import AppManager
+
+
+class MainWindow:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Image Processing Application")
+        self.root.geometry("1200x800")
+        
+        self.app_manager = AppManager()
+        self.images = []  # Lista wszystkich załadowanych obrazów
+        self.current_image = None
+        self.image_viewers = []  # Lista otwartych okien z obrazami
+        
+        self._create_menu()
+        self._create_main_panel()
+        
+    def _create_menu(self):
+        """Tworzy menu w stylu ImageJ"""
+        menubar = Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # FILE MENU
+        file_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Open...", command=self.load_image, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save", command=self.save_image, accelerator="Ctrl+S")
+        file_menu.add_command(label="Save As...", command=self.save_image_as)
+        file_menu.add_separator()
+        file_menu.add_command(label="Close", command=self.close_current_image)
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        
+        # IMAGE MENU
+        image_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Image", menu=image_menu)
+        image_menu.add_command(label="Duplicate...", command=self.duplicate_image, accelerator="Ctrl+D")
+        
+        # Submenu: Type
+        type_menu = Menu(image_menu, tearoff=0)
+        image_menu.add_cascade(label="Type", menu=type_menu)
+        type_menu.add_command(label="8-bit Grayscale", command=self.convert_to_grayscale)
+        type_menu.add_command(label="RGB Color", command=self.convert_to_color)
+        
+        # Submenu: Adjust
+        adjust_menu = Menu(image_menu, tearoff=0)
+        image_menu.add_cascade(label="Adjust", menu=adjust_menu)
+        adjust_menu.add_command(label="Brightness/Contrast...")
+        
+        # PROCESS MENU - LAB 1
+        process_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Process", menu=process_menu)
+        
+        # Point Operations
+        process_menu.add_command(label="Invert (Negate)", command=self.apply_negate, accelerator="Ctrl+Shift+I")
+        process_menu.add_command(label="Posterize...", command=self.apply_posterize)
+        process_menu.add_separator()
+        
+        # Thresholding submenu
+        threshold_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Binary", menu=threshold_menu)
+        threshold_menu.add_command(label="Threshold...", command=self.apply_threshold_binary)
+        threshold_menu.add_command(label="Threshold with Levels...", command=self.apply_threshold_levels)
+        
+        process_menu.add_separator()
+        
+        # Histogram operations
+        process_menu.add_command(label="Enhance Contrast (Stretch)...", command=self.apply_stretch_histogram)
+        process_menu.add_command(label="Equalize Histogram", command=self.apply_equalize_histogram)
+        
+        # PROCESS MENU - LAB 2
+        process_menu.add_separator()
+        
+        # Math submenu
+        math_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Math", menu=math_menu)
+        math_menu.add_command(label="Add...")
+        math_menu.add_command(label="Subtract...")
+        math_menu.add_command(label="Multiply...")
+        math_menu.add_command(label="Divide...")
+        math_menu.add_command(label="Absolute Difference...")
+        
+        # Logical operations submenu
+        logical_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Logical", menu=logical_menu)
+        logical_menu.add_command(label="AND...")
+        logical_menu.add_command(label="OR...")
+        logical_menu.add_command(label="XOR...")
+        logical_menu.add_command(label="NOT")
+        
+        # Filters submenu
+        filters_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Filters", menu=filters_menu)
+        filters_menu.add_command(label="Smooth...")
+        filters_menu.add_command(label="Sharpen...")
+        filters_menu.add_command(label="Gaussian Blur...")
+        filters_menu.add_command(label="Median...")
+        
+        # Edge detection submenu
+        edge_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Find Edges", menu=edge_menu)
+        edge_menu.add_command(label="Sobel...")
+        edge_menu.add_command(label="Prewitt...")
+        edge_menu.add_command(label="Laplacian...")
+        edge_menu.add_command(label="Canny...")
+        
+        # ANALYZE MENU - LAB 3 & 4
+        analyze_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Analyze", menu=analyze_menu)
+        analyze_menu.add_command(label="Histogram", command=self.show_histogram, accelerator="Ctrl+H")
+        analyze_menu.add_separator()
+        analyze_menu.add_command(label="Measure")
+        analyze_menu.add_command(label="Set Measurements...")
+        
+        # Morphology submenu
+        morphology_menu = Menu(analyze_menu, tearoff=0)
+        analyze_menu.add_cascade(label="Morphology", menu=morphology_menu)
+        morphology_menu.add_command(label="Erode")
+        morphology_menu.add_command(label="Dilate")
+        morphology_menu.add_command(label="Open")
+        morphology_menu.add_command(label="Close")
+        morphology_menu.add_command(label="Skeletonize")
+        
+        # PLUGINS MENU
+        plugins_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Plugins", menu=plugins_menu)
+        plugins_menu.add_command(label="Hough Transform...")
+        plugins_menu.add_command(label="Inpainting...")
+        plugins_menu.add_command(label="Graph Cut Segmentation...")
+        
+        # WINDOW MENU
+        window_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Window", menu=window_menu)
+        window_menu.add_command(label="Cascade", command=self.cascade_windows)
+        window_menu.add_command(label="Tile", command=self.tile_windows)
+        window_menu.add_separator()
+        window_menu.add_command(label="Show All", command=self.show_all_windows)
+        window_menu.add_command(label="Close All", command=self.close_all_windows)
+        
+        # HELP MENU
+        help_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About...", command=self.show_about)
+        
+        # Keyboard shortcuts
+        self.root.bind("<Control-o>", lambda e: self.load_image())
+        self.root.bind("<Control-s>", lambda e: self.save_image())
+        self.root.bind("<Control-d>", lambda e: self.duplicate_image())
+        self.root.bind("<Control-h>", lambda e: self.show_histogram())
+        self.root.bind("<Control-Shift-I>", lambda e: self.apply_negate())
+        
+    def _create_main_panel(self):
+        """Tworzy główny panel aplikacji"""
+        # Info panel
+        info_frame = tk.Frame(self.root, bg="#f0f0f0", height=60)
+        info_frame.pack(side=tk.TOP, fill=tk.X)
+        info_frame.pack_propagate(False)
+        
+        tk.Label(
+            info_frame, 
+            text="Image Processing Application", 
+            font=("Arial", 16, "bold"),
+            bg="#f0f0f0"
+        ).pack(pady=10)
+        
+        self.status_label = tk.Label(
+            info_frame,
+            text="Ready | No image loaded",
+            font=("Arial", 9),
+            bg="#f0f0f0",
+            fg="#666"
+        )
+        self.status_label.pack(pady=5)
+        
+        # Main canvas area (może być wykorzystany później)
+        self.canvas_frame = tk.Frame(self.root, bg="white")
+        self.canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        welcome_label = tk.Label(
+            self.canvas_frame,
+            text="Open an image to start\n\nFile → Open... or Ctrl+O",
+            font=("Arial", 12),
+            fg="#999",
+            bg="white"
+        )
+        welcome_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        
+    def _update_status(self, text):
+        """Aktualizuje status bar"""
+        self.status_label.config(text=text)
+        
+    def _require_image(func):
+        """Dekorator sprawdzający czy obraz jest załadowany"""
+        def wrapper(self, *args, **kwargs):
+            if self.current_image is None:
+                messagebox.showwarning(
+                    "No Active Image",
+                    "Please open or select an image first."
+                )
+                return None
+            return func(self, *args, **kwargs)
+        return wrapper
+    
+    def _require_grayscale(func):
+        """Dekorator sprawdzający czy obraz jest w skali szarości"""
+        def wrapper(self, *args, **kwargs):
+            if self.current_image is None:
+                messagebox.showwarning("No Active Image", "Please open an image first.")
+                return None
+            if len(self.current_image.shape) != 2:
+                messagebox.showerror(
+                    "Grayscale Required",
+                    "This operation requires a grayscale image.\n\nConvert: Image → Type → 8-bit Grayscale"
+                )
+                return None
+            return func(self, *args, **kwargs)
+        return wrapper
+    
+    # ============ FILE OPERATIONS ============
+    
+    def load_image(self):
+        """Wczytuje obraz z pliku"""
+        from tkinter import filedialog
+        
+        file_path = filedialog.askopenfilename(
+            title="Open Image",
+            filetypes=[
+                ("All Images", "*.jpg *.jpeg *.png *.bmp *.tif *.tiff"),
+                ("JPEG", "*.jpg *.jpeg"),
+                ("PNG", "*.png"),
+                ("BMP", "*.bmp"),
+                ("TIFF", "*.tif *.tiff"),
+                ("All Files", "*.*")
+            ]
+        )
+        
+        if not file_path:
+            return
+        
+        img = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+        
+        if img is None:
+            messagebox.showerror("Error", f"Failed to load image:\n{file_path}")
+            return
+        
+        # Remove alpha channel if exists
+        if len(img.shape) == 3 and img.shape[2] == 4:
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        
+        self.images.append(img)
+        self.current_image = img
+        
+        # Otwórz w nowym oknie
+        viewer = ImageViewer(self.root, img, f"Image {len(self.images)}")
+        viewer.on_focus_callback = lambda: self._set_active_image(img)
+        self.image_viewers.append(viewer)
+        
+        self._update_status(f"Loaded: {file_path.split('/')[-1]} | {img.shape[1]}x{img.shape[0]} | {img.dtype}")
+        
+    @_require_image
+    def save_image(self):
+        """Zapisuje aktywny obraz"""
+        self.save_image_as()
+        
+    @_require_image
+    def save_image_as(self):
+        """Zapisuje aktywny obraz jako..."""
+        from tkinter import filedialog
+        
+        file_path = filedialog.asksaveasfilename(
+            title="Save Image As",
+            defaultextension=".png",
+            filetypes=[
+                ("PNG", "*.png"),
+                ("JPEG", "*.jpg"),
+                ("BMP", "*.bmp"),
+                ("TIFF", "*.tif")
+            ]
+        )
+        
+        if file_path:
+            cv2.imwrite(file_path, self.current_image)
+            messagebox.showinfo("Success", f"Image saved:\n{file_path}")
+            self._update_status(f"Saved: {file_path.split('/')[-1]}")
+            
+    def close_current_image(self):
+        """Zamyka aktywne okno obrazu"""
+        # TODO: implementacja
+        pass
+    
+    # ============ IMAGE OPERATIONS ============
+    
+    @_require_image
+    def duplicate_image(self):
+        """Duplikuje aktywny obraz"""
+        dup = self.current_image.copy()
+        self.images.append(dup)
+        
+        viewer = ImageViewer(self.root, dup, f"Duplicate of Image {len(self.images)-1}")
+        viewer.on_focus_callback = lambda: self._set_active_image(dup)
+        self.image_viewers.append(viewer)
+        
+        self._update_status("Image duplicated")
+        
+    @_require_image
+    def convert_to_grayscale(self):
+        """Konwertuje aktywny obraz na skalę szarości"""
+        if len(self.current_image.shape) == 2:
+            messagebox.showinfo("Info", "Image is already grayscale.")
+            return
+        
+        gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
+        self.images.append(gray)
+        self.current_image = gray
+        
+        viewer = ImageViewer(self.root, gray, f"Grayscale {len(self.images)}")
+        viewer.on_focus_callback = lambda: self._set_active_image(gray)
+        self.image_viewers.append(viewer)
+        
+        self._update_status("Converted to grayscale")
+        
+    @_require_grayscale
+    def convert_to_color(self):
+        """Konwertuje obraz grayscale na kolor (pseudocolor)"""
+        color = cv2.cvtColor(self.current_image, cv2.COLOR_GRAY2BGR)
+        self.images.append(color)
+        self.current_image = color
+        
+        viewer = ImageViewer(self.root, color, f"Color {len(self.images)}")
+        viewer.on_focus_callback = lambda: self._set_active_image(color)
+        self.image_viewers.append(viewer)
+        
+        self._update_status("Converted to color")
+    
+    # ============ PROCESS OPERATIONS (LAB 1) ============
+    
+    @_require_grayscale
+    def apply_negate(self):
+        """Negacja obrazu"""
+        result = self.app_manager.apply_negate(self.current_image)
+        self._show_result(result, "Inverted")
+        
+    @_require_grayscale
+    def apply_posterize(self):
+        """Posteryzacja obrazu"""
+        dialog = PosterizeDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Posterized")
+        
+    @_require_grayscale
+    def apply_threshold_binary(self):
+        """Progowanie binarne"""
+        dialog = ThresholdDialog(
+            self.root, 
+            self.current_image, 
+            self.app_manager,
+            mode="binary"
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Binary Threshold")
+        
+    @_require_grayscale
+    def apply_threshold_levels(self):
+        """Progowanie z zachowaniem poziomów"""
+        dialog = ThresholdDialog(
+            self.root,
+            self.current_image,
+            self.app_manager,
+            mode="levels"
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Threshold with Levels")
+        
+    @_require_grayscale
+    def apply_stretch_histogram(self):
+        """Rozciąganie histogramu"""
+        dialog = StretchDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Stretched Histogram")
+        
+    @_require_grayscale
+    def apply_equalize_histogram(self):
+        """Equalizacja histogramu"""
+        result = self.app_manager.apply_equalize_histogram(self.current_image)
+        self._show_result(result, "Equalized Histogram")
+    
+    # ============ ANALYZE OPERATIONS ============
+    
+    @_require_image
+    def show_histogram(self):
+        """Wyświetla histogram"""
+        histograms = self.app_manager.calculate_histograms(self.current_image)
+        HistogramViewer(self.root, histograms)
+    
+    # ============ WINDOW MANAGEMENT ============
+    
+    def cascade_windows(self):
+        """Układa okna kaskadowo"""
+        offset = 30
+        for i, viewer in enumerate(self.image_viewers):
+            if viewer.window.winfo_exists():
+                viewer.window.geometry(f"+{50 + i*offset}+{50 + i*offset}")
+                
+    def tile_windows(self):
+        """Układa okna obok siebie"""
+        # TODO: implementacja
+        pass
+        
+    def show_all_windows(self):
+        """Pokazuje wszystkie okna"""
+        for viewer in self.image_viewers:
+            if viewer.window.winfo_exists():
+                viewer.window.deiconify()
+                
+    def close_all_windows(self):
+        """Zamyka wszystkie okna obrazów"""
+        for viewer in self.image_viewers:
+            if viewer.window.winfo_exists():
+                viewer.window.destroy()
+        self.image_viewers.clear()
+        self.current_image = None
+        self._update_status("All images closed")
+    
+    # ============ HELPERS ============
+    
+    def _set_active_image(self, img):
+        """Ustawia aktywny obraz"""
+        self.current_image = img
+        shape_str = f"{img.shape[1]}x{img.shape[0]}"
+        type_str = "Grayscale" if len(img.shape) == 2 else "Color"
+        self._update_status(f"Active: {shape_str} | {type_str} | {img.dtype}")
+        
+    def _show_result(self, img, title):
+        """Wyświetla wynik operacji w nowym oknie"""
+        self.images.append(img)
+        viewer = ImageViewer(self.root, img, title)
+        viewer.on_focus_callback = lambda: self._set_active_image(img)
+        self.image_viewers.append(viewer)
+        self._update_status(f"Created: {title}")
+        
+    def show_about(self):
+        """Wyświetla okno About"""
+        messagebox.showinfo(
+            "About",
+            "Image Processing Application\n\n"
+            "Laboratorium APO 2025/2026\n"
+            "Based on ImageJ interface"
+        )
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MainWindow(root)
+    root.mainloop()
