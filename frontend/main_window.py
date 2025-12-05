@@ -5,9 +5,7 @@ import numpy as np
 
 from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
-from frontend.dialogs.threshold_dialog import ThresholdDialog
-from frontend.dialogs.posterize_dialog import PosterizeDialog
-from frontend.dialogs.stretch_dialog import StretchDialog
+from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, LogicalOperationsDialog
 from backend.AppManager import AppManager
 
 
@@ -50,6 +48,9 @@ class MainWindow:
         image_menu.add_cascade(label="Typ", menu=type_menu)
         type_menu.add_command(label="8-bit Skala szarości", command=self.convert_to_grayscale)
         type_menu.add_command(label="RGB Kolor", command=self.convert_to_color)
+        type_menu.add_separator()
+        type_menu.add_command(label="Maska binarna (0/1)", command=self.convert_to_binary_mask)
+        type_menu.add_command(label="Maska 8-bit (0/255)", command=self.convert_to_8bit_mask)
         
         # Submenu: Adjust
         adjust_menu = Menu(image_menu, tearoff=0)
@@ -91,11 +92,11 @@ class MainWindow:
         
         # Logical operations submenu
         logical_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Logiczne", menu=logical_menu)
-        logical_menu.add_command(label="AND...")
-        logical_menu.add_command(label="OR...")
-        logical_menu.add_command(label="XOR...")
-        logical_menu.add_command(label="NOT")
+        process_menu.add_cascade(label="Logiczne", menu=logical_menu) 
+        logical_menu.add_command(label="AND", command=self.apply_logical_and)
+        logical_menu.add_command(label="OR", command=self.apply_logical_or)
+        logical_menu.add_command(label="XOR", command=self.apply_logical_xor)
+        logical_menu.add_command(label="NOT", command=self.apply_logical_not)
         
         # Filters submenu
         filters_menu = Menu(process_menu, tearoff=0)
@@ -225,6 +226,26 @@ class MainWindow:
             return func(self, *args, **kwargs)
         return wrapper
     
+    def _require_multiple_images(min_count=2):  # DODAJ TEN DEKORATOR
+        """
+        Dekorator sprawdzający czy jest wystarczająco dużo obrazów.
+        
+        Parametr:
+            min_count: minimalna liczba obrazów wymagana
+        """
+        def decorator(func):
+            def wrapper(self, *args, **kwargs):
+                if len(self.images) < min_count:
+                    messagebox.showwarning(
+                        "Za mało obrazów",
+                        f"Potrzebujesz co najmniej {min_count} obrazów do tej operacji.\n\n"
+                        f"Obecnie: {len(self.images)} obraz(ów)"
+                    )
+                    return None
+                return func(self, *args, **kwargs)
+            return wrapper
+        return decorator
+    
     # ============ FILE OPERATIONS ============
     
     def load_image(self):
@@ -268,6 +289,7 @@ class MainWindow:
         # Otwórz w nowym oknie
         viewer = ImageViewer(self.root, img, f"Image {len(self.images)}")
         viewer.on_focus_callback = lambda: self._set_active_image(img)
+        viewer.on_close_callback = self._on_image_closed 
         self.image_viewers.append(viewer)
         
         self._update_status(f"Loaded: {file_path.split('/')[-1]} | {img.shape[1]}x{img.shape[0]} | {img.dtype}")
@@ -313,6 +335,7 @@ class MainWindow:
         
         viewer = ImageViewer(self.root, dup, f"Duplicate of Image {len(self.images)-1}")
         viewer.on_focus_callback = lambda: self._set_active_image(dup)
+        viewer.on_close_callback = self._on_image_closed
         self.image_viewers.append(viewer)
         
         self._update_status("Image duplicated")
@@ -330,6 +353,7 @@ class MainWindow:
         
         viewer = ImageViewer(self.root, gray, f"Grayscale {len(self.images)}")
         viewer.on_focus_callback = lambda: self._set_active_image(gray)
+        viewer.on_close_callback = self._on_image_closed
         self.image_viewers.append(viewer)
         
         self._update_status("Converted to grayscale")
@@ -343,6 +367,7 @@ class MainWindow:
         
         viewer = ImageViewer(self.root, color, f"Color {len(self.images)}")
         viewer.on_focus_callback = lambda: self._set_active_image(color)
+        viewer.on_close_callback = self._on_image_closed
         self.image_viewers.append(viewer)
         
         self._update_status("Converted to color")
@@ -402,6 +427,81 @@ class MainWindow:
         """Wyświetla histogram"""
         histograms = self.app_manager.calculate_histograms(self.current_image)
         HistogramViewer(self.root, histograms)
+
+    # ============ LOGICAL OPERATIONS (LAB 2) ============
+    
+    @_require_grayscale
+    def apply_logical_not(self):
+        """Operacja logiczna NOT"""
+        result = self.app_manager.apply_logical_not(self.current_image)
+        self._show_result(result, "NOT")
+    
+    @_require_multiple_images(min_count=2)
+    def apply_logical_and(self):
+        """Operacja logiczna AND"""
+        dialog = LogicalOperationsDialog(
+            self.root,
+            "AND",
+            self.images,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "AND")
+
+    @_require_multiple_images(min_count=2)
+    def apply_logical_or(self):
+        """Operacja logiczna OR"""
+        dialog = LogicalOperationsDialog(
+            self.root,
+            "OR",
+            self.images,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "OR")
+
+    @_require_multiple_images(min_count=2)
+    def apply_logical_xor(self):
+        """Operacja logiczna XOR"""
+        dialog = LogicalOperationsDialog(
+            self.root,
+            "XOR",
+            self.images,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "XOR")
+
+    @_require_grayscale
+    def convert_to_binary_mask(self):
+        """Konwertuje maskę 8-bitową (0/255) na binarną (0/1)"""
+        try:
+            binary = self.app_manager.convert_to_binary_mask(self.current_image)
+            self.images.append(binary)
+            self.current_image = binary
+            
+            viewer = ImageViewer(self.root, binary, f"Maska binarna {len(self.images)}")
+            viewer.on_focus_callback = lambda: self._set_active_image(binary)
+            viewer.on_close_callback = self._on_image_closed
+            self.image_viewers.append(viewer)
+            
+            self._update_status("Przekonwertowano na maskę binarną (0/1)")
+        except ValueError as e:
+            messagebox.showerror("Błąd konwersji", str(e))
+    
+    @_require_grayscale
+    def convert_to_8bit_mask(self):
+        """Konwertuje maskę binarną (0/1) na 8-bitową (0/255)"""
+        try:
+            mask_8bit = self.app_manager.convert_to_8bit_mask(self.current_image)
+            self.images.append(mask_8bit)
+            self.current_image = mask_8bit
+            
+            viewer = ImageViewer(self.root, mask_8bit, f"Maska 8-bit {len(self.images)}")
+            viewer.on_focus_callback = lambda: self._set_active_image(mask_8bit)
+            viewer.on_close_callback = self._on_image_closed
+            self.image_viewers.append(viewer)
+            
+            self._update_status("Przekonwertowano na maskę 8-bit (0/255)")
+        except ValueError as e:
+            messagebox.showerror("Błąd konwersji", str(e))
     
     # ============ WINDOW MANAGEMENT ============
     
@@ -446,8 +546,40 @@ class MainWindow:
         self.images.append(img)
         viewer = ImageViewer(self.root, img, title)
         viewer.on_focus_callback = lambda: self._set_active_image(img)
+        viewer.on_close_callback = self._on_image_closed
         self.image_viewers.append(viewer)
         self._update_status(f"Created: {title}")
+
+    def _on_image_closed(self, img):
+        """
+        Wywoływane gdy okno obrazu jest zamykane.
+        Usuwa obraz z pamięci programu.
+        """
+        # Znajdź indeks obrazu przez porównanie identity (is)
+        img_index = None
+        for idx, image in enumerate(self.images):
+            if image is img:
+                img_index = idx
+                break
+        
+        # Usuń obraz z listy
+        if img_index is not None:
+            self.images.pop(img_index)
+        
+        # Jeśli to był aktywny obraz, wyczyść
+        if self.current_image is img:
+            self.current_image = None
+            if self.images:
+                # Ustaw pierwszy dostępny obraz jako aktywny
+                self.current_image = self.images[0]
+                self._update_status(f"Aktywny obraz zmieniony | Pozostało: {len(self.images)} obraz(ów)")
+            else:
+                self._update_status("Wszystkie obrazy zamknięte | Brak aktywnego obrazu")
+        else:
+            self._update_status(f"Obraz zamknięty | Pozostało: {len(self.images)} obraz(ów)")
+        
+        # Usuń viewer z listy (opcjonalnie - czyszczenie)
+        self.image_viewers = [v for v in self.image_viewers if v.window.winfo_exists()]
         
     def show_about(self):
         """Wyświetla okno About"""

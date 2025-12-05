@@ -27,6 +27,7 @@ class ImageViewer:
         # Bind focus event
         self.window.bind("<FocusIn>", self._on_focus)
         self.window.bind("<Configure>", self._on_resize)
+        self.window.protocol("WM_DELETE_WINDOW", self._on_close)
         
         self._display_image()
         
@@ -39,8 +40,14 @@ class ImageViewer:
         
         # Konwersja do RGB dla PIL
         if len(img.shape) == 2:
-            # Grayscale
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+            # Grayscale - sprawdź czy to maska binarna (0/1)
+            unique_vals = np.unique(img)
+            if len(unique_vals) == 2 and 0 in unique_vals and 1 in unique_vals:
+                # Maska binarna (0/1) - przeskaluj do 0/255 tylko do wyświetlenia
+                img_display = img * 255
+                img_rgb = cv2.cvtColor(img_display.astype(np.uint8), cv2.COLOR_GRAY2RGB)
+            else:
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         elif img.shape[2] == 3:
             # BGR -> RGB
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -172,6 +179,12 @@ class ImageViewer:
         """Wywoływane gdy okno otrzyma focus"""
         if self.on_focus_callback:
             self.on_focus_callback()
+    
+    def _on_close(self):
+        """Wywoływane gdy okno jest zamykane"""
+        if hasattr(self, 'on_close_callback') and self.on_close_callback:
+            self.on_close_callback(self.original_img)
+        self.window.destroy()
 
     def _on_resize(self, event):
         """Automatyczne skalowanie obrazu przy zmianie rozmiaru okna"""
@@ -203,7 +216,14 @@ class ImageViewer:
         
         # Konwersja do RGB
         if len(img.shape) == 2:
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+            # Sprawdź czy to maska binarna (0/1)
+            unique_vals = np.unique(img)
+            if len(unique_vals) <= 2 and np.max(unique_vals) <= 1:
+                # Maska binarna - przeskaluj do wyświetlenia
+                img_display = img * 255
+                img_rgb = cv2.cvtColor(img_display.astype(np.uint8), cv2.COLOR_GRAY2RGB)
+            else:
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         elif img.shape[2] == 3:
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         else:

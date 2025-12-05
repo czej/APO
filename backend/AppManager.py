@@ -1,5 +1,7 @@
 from backend.PointOperations import PointOperations
 from backend.Histogram import HistogramManager
+from backend.LogicalOperations import LogicalOperations 
+from backend.MaskOperations import MaskOperations
 
 class AppManager:
     @staticmethod
@@ -40,3 +42,37 @@ class AppManager:
     @staticmethod
     def apply_equalize_histogram(img):
         return HistogramManager.equalize_histogram(img)
+    
+    # === LOGICAL OPERATIONS (LAB 2) ===  
+
+    @staticmethod
+    def apply_logical_not(img):
+        """Operacja logiczna NOT"""
+        return LogicalOperations.logical_not(img)
+    
+    @staticmethod
+    def apply_logical_and(img1, img2):
+        """Operacja logiczna AND"""
+        return LogicalOperations.logical_and(img1, img2)
+    
+    @staticmethod
+    def apply_logical_or(img1, img2):
+        """Operacja logiczna OR"""
+        return LogicalOperations.logical_or(img1, img2)
+    
+    @staticmethod
+    def apply_logical_xor(img1, img2):
+        """Operacja logiczna XOR"""
+        return LogicalOperations.logical_xor(img1, img2)
+    
+    # === MASK CONVERSIONS (LAB 2) ===
+    
+    @staticmethod
+    def convert_to_8bit_mask(img):
+        """Konwertuje maskę binarną (0/1) na maskę 8-bitową (0/255)"""
+        return MaskOperations.to_8bit_mask(img)
+    
+    @staticmethod
+    def convert_to_binary_mask(img):
+        """Konwertuje maskę 8-bitową (0/255) na maskę binarną (0/1)"""
+        return MaskOperations.to_binary_mask(img)
