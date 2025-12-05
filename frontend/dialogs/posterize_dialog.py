@@ -20,7 +20,7 @@ class PosterizeDialog(tk.Toplevel):
         self.on_result_callback = None
         
         self.title("Posterize")
-        self.geometry("450x300")
+        self.geometry("600x550")
         
         self._create_ui()
         
@@ -33,14 +33,14 @@ class PosterizeDialog(tk.Toplevel):
         
         tk.Label(
             header_frame,
-            text="Posterize - Reduce Gray Levels",
+            text="Posteryzacja - Redukcja poziomów szarości",
             font=("Arial", 12, "bold"),
             bg="#f0f0f0"
         ).pack(pady=10)
         
         tk.Label(
             header_frame,
-            text="Reduce the number of gray levels in the image",
+            text="Zmniejsz liczbę poziomów szarości w obrazie",
             font=("Arial", 9),
             bg="#f0f0f0",
             fg="#666"
@@ -56,7 +56,7 @@ class PosterizeDialog(tk.Toplevel):
         
         tk.Label(
             levels_frame,
-            text="Number of gray levels (2-256):",
+            text="Liczba poziomów szarości (2-256):",
             font=("Arial", 10)
         ).pack(side=tk.LEFT, padx=(0, 15))
         
@@ -79,7 +79,7 @@ class PosterizeDialog(tk.Toplevel):
         
         tk.Label(
             slider_frame,
-            text="Quick select:",
+            text="Szybki wybór:",
             font=("Arial", 9)
         ).pack(anchor="w")
         
@@ -100,7 +100,7 @@ class PosterizeDialog(tk.Toplevel):
         
         tk.Label(
             presets_frame,
-            text="Presets:",
+            text="Presety:",
             font=("Arial", 9)
         ).pack(side=tk.LEFT, padx=(0, 10))
         
@@ -123,22 +123,13 @@ class PosterizeDialog(tk.Toplevel):
         self.info_label.pack(pady=15, anchor="w")
         self._update_info()
         
-        # Preview checkbox
-        self.preview_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(
-            content_frame,
-            text="Show preview",
-            variable=self.preview_var,
-            command=self._toggle_preview
-        ).pack(anchor="w", pady=5)
-        
         # Buttons
         button_frame = tk.Frame(self)
         button_frame.pack(side=tk.BOTTOM, pady=15)
         
         tk.Button(
             button_frame,
-            text="Apply",
+            text="Zastosuj",
             command=self._apply,
             width=10,
             bg="#4CAF50",
@@ -148,7 +139,7 @@ class PosterizeDialog(tk.Toplevel):
         
         tk.Button(
             button_frame,
-            text="Cancel",
+            text="Anuluj",
             command=self.destroy,
             width=10
         ).pack(side=tk.LEFT, padx=5)
@@ -157,8 +148,6 @@ class PosterizeDialog(tk.Toplevel):
         """Ustawia wartość z presetu"""
         self.levels_var.set(value)
         self._update_info()
-        if self.preview_var.get():
-            self._show_preview()
             
     def _update_info(self):
         """Aktualizuje informacje o posteryzacji"""
@@ -166,45 +155,12 @@ class PosterizeDialog(tk.Toplevel):
         bits = levels.bit_length() - 1
         
         info = (
-            f"Selected: {levels} levels\n"
-            f"Equivalent to ~{bits}-bit quantization\n"
-            f"Step size: {256 // levels} gray values per level"
+            f"Wybrano: {levels} poziomów\n"
+            f"Odpowiednik ~{bits}-bitowej kwantyzacji\n"
+            f"Rozmiar kroku: {256 // levels} wartości na poziom"
         )
         self.info_label.config(text=info)
-        
-        if self.preview_var.get():
-            self._show_preview()
             
-    def _toggle_preview(self):
-        """Włącza/wyłącza podgląd"""
-        if self.preview_var.get():
-            self._show_preview()
-        else:
-            if hasattr(self, 'preview_window') and self.preview_window.winfo_exists():
-                self.preview_window.destroy()
-                
-    def _show_preview(self):
-        """Pokazuje podgląd posteryzacji"""
-        levels = self.levels_var.get()
-        result = self.app_manager.apply_posterize(self.img, levels)
-        
-        # Utwórz lub zaktualizuj okno podglądu
-        if not hasattr(self, 'preview_window') or not self.preview_window.winfo_exists():
-            self.preview_window = tk.Toplevel(self)
-            self.preview_window.title("Preview")
-            self.preview_window.geometry("400x400")
-            
-            self.preview_label = tk.Label(self.preview_window)
-            self.preview_label.pack()
-        
-        # Aktualizuj obraz
-        display = cv2.resize(result, (400, 400), interpolation=cv2.INTER_NEAREST)
-        img_pil = Image.fromarray(display)
-        img_tk = ImageTk.PhotoImage(img_pil)
-        
-        self.preview_label.config(image=img_tk)
-        self.preview_label.image = img_tk
-        
     def _apply(self):
         """Zastosuj posteryzację"""
         try:
@@ -217,4 +173,4 @@ class PosterizeDialog(tk.Toplevel):
             self.destroy()
         except ValueError as e:
             from tkinter import messagebox
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Błąd", str(e))

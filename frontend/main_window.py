@@ -32,66 +32,66 @@ class MainWindow:
         
         # FILE MENU
         file_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Open...", command=self.load_image, accelerator="Ctrl+O")
-        file_menu.add_command(label="Save", command=self.save_image, accelerator="Ctrl+S")
-        file_menu.add_command(label="Save As...", command=self.save_image_as)
+        menubar.add_cascade(label="Plik", menu=file_menu)
+        file_menu.add_command(label="Otwórz...", command=self.load_image, accelerator="Ctrl+O")
+        file_menu.add_command(label="Zapisz", command=self.save_image, accelerator="Ctrl+S")
+        file_menu.add_command(label="Zapisz jako...", command=self.save_image_as)
         file_menu.add_separator()
-        file_menu.add_command(label="Close", command=self.close_current_image)
-        file_menu.add_command(label="Exit", command=self.root.quit)
+        file_menu.add_command(label="Zamknij", command=self.close_current_image)
+        file_menu.add_command(label="Wyjście", command=self.root.quit)
         
         # IMAGE MENU
         image_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Image", menu=image_menu)
-        image_menu.add_command(label="Duplicate...", command=self.duplicate_image, accelerator="Ctrl+D")
+        menubar.add_cascade(label="Obraz", menu=image_menu)
+        image_menu.add_command(label="Duplikuj...", command=self.duplicate_image, accelerator="Ctrl+D")
         
         # Submenu: Type
         type_menu = Menu(image_menu, tearoff=0)
-        image_menu.add_cascade(label="Type", menu=type_menu)
-        type_menu.add_command(label="8-bit Grayscale", command=self.convert_to_grayscale)
-        type_menu.add_command(label="RGB Color", command=self.convert_to_color)
+        image_menu.add_cascade(label="Typ", menu=type_menu)
+        type_menu.add_command(label="8-bit Skala szarości", command=self.convert_to_grayscale)
+        type_menu.add_command(label="RGB Kolor", command=self.convert_to_color)
         
         # Submenu: Adjust
         adjust_menu = Menu(image_menu, tearoff=0)
-        image_menu.add_cascade(label="Adjust", menu=adjust_menu)
-        adjust_menu.add_command(label="Brightness/Contrast...")
+        image_menu.add_cascade(label="Dostosuj", menu=adjust_menu)
+        adjust_menu.add_command(label="Jasność/Kontrast...")
         
         # PROCESS MENU - LAB 1
         process_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Process", menu=process_menu)
+        menubar.add_cascade(label="Przetwarzanie", menu=process_menu)
         
         # Point Operations
-        process_menu.add_command(label="Invert (Negate)", command=self.apply_negate, accelerator="Ctrl+Shift+I")
-        process_menu.add_command(label="Posterize...", command=self.apply_posterize)
+        process_menu.add_command(label="Odwróć (Negacja)", command=self.apply_negate, accelerator="Ctrl+Shift+I")
+        process_menu.add_command(label="Posteryzacja...", command=self.apply_posterize)
         process_menu.add_separator()
         
         # Thresholding submenu
         threshold_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Binary", menu=threshold_menu)
-        threshold_menu.add_command(label="Threshold...", command=self.apply_threshold_binary)
-        threshold_menu.add_command(label="Threshold with Levels...", command=self.apply_threshold_levels)
+        process_menu.add_cascade(label="Binaryzacja", menu=threshold_menu)
+        threshold_menu.add_command(label="Progowanie...", command=self.apply_threshold_binary)
+        threshold_menu.add_command(label="Progowanie z poziomami...", command=self.apply_threshold_levels)
         
         process_menu.add_separator()
         
         # Histogram operations
-        process_menu.add_command(label="Enhance Contrast (Stretch)...", command=self.apply_stretch_histogram)
-        process_menu.add_command(label="Equalize Histogram", command=self.apply_equalize_histogram)
+        process_menu.add_command(label="Rozciągnij kontrast...", command=self.apply_stretch_histogram)
+        process_menu.add_command(label="Wyrównaj histogram", command=self.apply_equalize_histogram)
         
         # PROCESS MENU - LAB 2
         process_menu.add_separator()
         
         # Math submenu
         math_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Math", menu=math_menu)
-        math_menu.add_command(label="Add...")
-        math_menu.add_command(label="Subtract...")
-        math_menu.add_command(label="Multiply...")
-        math_menu.add_command(label="Divide...")
-        math_menu.add_command(label="Absolute Difference...")
+        process_menu.add_cascade(label="Matematyka", menu=math_menu)
+        math_menu.add_command(label="Dodaj...")
+        math_menu.add_command(label="Odejmij...")
+        math_menu.add_command(label="Pomnóż...")
+        math_menu.add_command(label="Podziel...")
+        math_menu.add_command(label="Różnica bezwzględna...")
         
         # Logical operations submenu
         logical_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Logical", menu=logical_menu)
+        process_menu.add_cascade(label="Logiczne", menu=logical_menu)
         logical_menu.add_command(label="AND...")
         logical_menu.add_command(label="OR...")
         logical_menu.add_command(label="XOR...")
@@ -99,59 +99,59 @@ class MainWindow:
         
         # Filters submenu
         filters_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Filters", menu=filters_menu)
-        filters_menu.add_command(label="Smooth...")
-        filters_menu.add_command(label="Sharpen...")
-        filters_menu.add_command(label="Gaussian Blur...")
-        filters_menu.add_command(label="Median...")
+        process_menu.add_cascade(label="Filtry", menu=filters_menu)
+        filters_menu.add_command(label="Wygładzanie...")
+        filters_menu.add_command(label="Wyostrzanie...")
+        filters_menu.add_command(label="Rozmycie Gaussa...")
+        filters_menu.add_command(label="Mediana...")
         
         # Edge detection submenu
         edge_menu = Menu(process_menu, tearoff=0)
-        process_menu.add_cascade(label="Find Edges", menu=edge_menu)
+        process_menu.add_cascade(label="Wykrywanie krawędzi", menu=edge_menu)
         edge_menu.add_command(label="Sobel...")
         edge_menu.add_command(label="Prewitt...")
-        edge_menu.add_command(label="Laplacian...")
+        edge_menu.add_command(label="Laplacjan...")
         edge_menu.add_command(label="Canny...")
         
         # ANALYZE MENU - LAB 3 & 4
         analyze_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Analyze", menu=analyze_menu)
+        menubar.add_cascade(label="Analiza", menu=analyze_menu)
         analyze_menu.add_command(label="Histogram", command=self.show_histogram, accelerator="Ctrl+H")
         analyze_menu.add_separator()
-        analyze_menu.add_command(label="Measure")
-        analyze_menu.add_command(label="Set Measurements...")
+        analyze_menu.add_command(label="Pomiar")
+        analyze_menu.add_command(label="Ustaw pomiary...")
         
         # Morphology submenu
         morphology_menu = Menu(analyze_menu, tearoff=0)
-        analyze_menu.add_cascade(label="Morphology", menu=morphology_menu)
-        morphology_menu.add_command(label="Erode")
-        morphology_menu.add_command(label="Dilate")
-        morphology_menu.add_command(label="Open")
-        morphology_menu.add_command(label="Close")
-        morphology_menu.add_command(label="Skeletonize")
+        analyze_menu.add_cascade(label="Morfologia", menu=morphology_menu)
+        morphology_menu.add_command(label="Erozja")
+        morphology_menu.add_command(label="Dylacja")
+        morphology_menu.add_command(label="Otwarcie")
+        morphology_menu.add_command(label="Zamknięcie")
+        morphology_menu.add_command(label="Szkieletyzacja")
         
         # PLUGINS MENU
         plugins_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Plugins", menu=plugins_menu)
-        plugins_menu.add_command(label="Hough Transform...")
+        menubar.add_cascade(label="Wtyczki", menu=plugins_menu)
+        plugins_menu.add_command(label="Transformata Hougha...")
         plugins_menu.add_command(label="Inpainting...")
-        plugins_menu.add_command(label="Graph Cut Segmentation...")
+        plugins_menu.add_command(label="Segmentacja Graph Cut...")
         
         # WINDOW MENU
         window_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Window", menu=window_menu)
-        window_menu.add_command(label="Cascade", command=self.cascade_windows)
-        window_menu.add_command(label="Tile", command=self.tile_windows)
+        menubar.add_cascade(label="Okna", menu=window_menu)
+        window_menu.add_command(label="Kaskadowo", command=self.cascade_windows)
+        window_menu.add_command(label="Kafelki", command=self.tile_windows)
         window_menu.add_separator()
-        window_menu.add_command(label="Show All", command=self.show_all_windows)
-        window_menu.add_command(label="Close All", command=self.close_all_windows)
+        window_menu.add_command(label="Pokaż wszystkie", command=self.show_all_windows)
+        window_menu.add_command(label="Zamknij wszystkie", command=self.close_all_windows)
         
         # HELP MENU
         help_menu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Help", menu=help_menu)
-        help_menu.add_command(label="About...", command=self.show_about)
+        menubar.add_cascade(label="Pomoc", menu=help_menu)
+        help_menu.add_command(label="O programie...", command=self.show_about)
         
-        # Keyboard shortcuts
+        # Keyboard shortcuts - bez zmian
         self.root.bind("<Control-o>", lambda e: self.load_image())
         self.root.bind("<Control-s>", lambda e: self.save_image())
         self.root.bind("<Control-d>", lambda e: self.duplicate_image())
