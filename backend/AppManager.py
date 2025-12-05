@@ -2,6 +2,7 @@ from backend.PointOperations import PointOperations
 from backend.Histogram import HistogramManager
 from backend.LogicalOperations import LogicalOperations 
 from backend.MaskOperations import MaskOperations
+from backend.ArithmeticOperations import ArithmeticOperations
 
 class AppManager:
     @staticmethod
@@ -76,3 +77,15 @@ class AppManager:
     def convert_to_binary_mask(img):
         """Konwertuje maskę 8-bitową (0/255) na maskę binarną (0/1)"""
         return MaskOperations.to_binary_mask(img)
+    
+    # === ARITHMETIC OPERATIONS (LAB 2) ===
+
+    @staticmethod
+    def apply_add_images(images, saturation=True):
+        """Dodawanie obrazów (2-5)"""
+        return ArithmeticOperations.add_images(images, saturation)
+    
+    @staticmethod
+    def apply_absolute_difference(img1, img2):
+        """Różnica bezwzględna obrazów"""
+        return ArithmeticOperations.absolute_difference(img1, img2)

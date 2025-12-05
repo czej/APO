@@ -27,7 +27,7 @@ class MaskOperations:
                 "Użyj progowania aby utworzyć maskę binarną."
             )
         
-        # Konwersja: 0→0, 1→255
+        # Konwersja: 0->0, 1->255
         result = (img * 255).astype(np.uint8)
         
         return result

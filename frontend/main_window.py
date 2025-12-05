@@ -5,7 +5,7 @@ import numpy as np
 
 from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
-from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, LogicalOperationsDialog
+from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog
 from backend.AppManager import AppManager
 
 
@@ -84,11 +84,12 @@ class MainWindow:
         # Math submenu
         math_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Matematyka", menu=math_menu)
-        math_menu.add_command(label="Dodaj...")
-        math_menu.add_command(label="Odejmij...")
-        math_menu.add_command(label="Pomnóż...")
-        math_menu.add_command(label="Podziel...")
-        math_menu.add_command(label="Różnica bezwzględna...")
+        math_menu.add_command(label="Dodaj obrazy", command=self.apply_add_images)
+        math_menu.add_command(label="Dodaj")
+        math_menu.add_command(label="Odejmij")
+        math_menu.add_command(label="Pomnóż")
+        math_menu.add_command(label="Podziel")
+        math_menu.add_command(label="Różnica bezwzględna", command=self.apply_absolute_difference)
         
         # Logical operations submenu
         logical_menu = Menu(process_menu, tearoff=0)
@@ -428,6 +429,32 @@ class MainWindow:
         histograms = self.app_manager.calculate_histograms(self.current_image)
         HistogramViewer(self.root, histograms)
 
+    # ============ ARITHMETIC OPERATIONS (LAB 2) ============
+
+    @_require_multiple_images(min_count=2)
+    def apply_add_images(self):
+        """Dodawanie obrazów (2-5)"""
+        dialog = BinaryOperationDialog(
+            self.root,
+            "Dodawanie",
+            "arithmetic_multi",
+            self.images,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Dodawanie obrazów")
+    
+    @_require_multiple_images(min_count=2)
+    def apply_absolute_difference(self):
+        """Różnica bezwzględna obrazów"""
+        dialog = BinaryOperationDialog(
+            self.root,
+            "Różnica bezwzględna",
+            "arithmetic",
+            self.images,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Różnica bezwzględna")
+
     # ============ LOGICAL OPERATIONS (LAB 2) ============
     
     @_require_grayscale
@@ -439,9 +466,10 @@ class MainWindow:
     @_require_multiple_images(min_count=2)
     def apply_logical_and(self):
         """Operacja logiczna AND"""
-        dialog = LogicalOperationsDialog(
+        dialog = BinaryOperationDialog(
             self.root,
             "AND",
+            "logical",
             self.images,
             self.app_manager
         )
@@ -450,9 +478,10 @@ class MainWindow:
     @_require_multiple_images(min_count=2)
     def apply_logical_or(self):
         """Operacja logiczna OR"""
-        dialog = LogicalOperationsDialog(
+        dialog = BinaryOperationDialog(
             self.root,
             "OR",
+            "logical",
             self.images,
             self.app_manager
         )
@@ -461,9 +490,10 @@ class MainWindow:
     @_require_multiple_images(min_count=2)
     def apply_logical_xor(self):
         """Operacja logiczna XOR"""
-        dialog = LogicalOperationsDialog(
+        dialog = BinaryOperationDialog(
             self.root,
             "XOR",
+            "logical",
             self.images,
             self.app_manager
         )
