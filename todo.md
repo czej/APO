@@ -6,8 +6,8 @@
     - [x] zapisywania
     - [x] duplikacji obrazu
     - [x] możliwość jednoczesnego wyświetlania wielu obrazów (w tym wielu operandów operacji na obrazach i jej wyniku.
-- [ ] ? Zapewnić możliwość zmiany wielkości wyświetlanego obrazu (zminimalizowany do wielkości okna, zajmujący pełny ekran, wyświetlony w naturalnej rozdzielczości, itp.) 
-- [x] ? rgb / szaroodcieniowy - identyfikuje przy wczytywaniu (? pytanie czy rgb konwertuje na szaroodcieniowy)
+- [x] Zapewnić możliwość zmiany wielkości wyświetlanego obrazu (zminimalizowany do wielkości okna, zajmujący pełny ekran, wyświetlony w naturalnej rozdzielczości, itp.) 
+- [x] rgb / szaroodcieniowy - identyfikuje przy wczytywaniu (? pytanie czy rgb konwertuje na szaroodcieniowy)
 - [ ] nazwy okienek
 
 
@@ -30,7 +30,6 @@ obrazów monochromatycznych i kolorowych.
 - [ ] Opracować algorytm i uruchomić aplikację manipulacji histogramem i generacji obrazu po transformacji histogramu:
     - [ ] Liniowego rozciąganie histogramu w wersjach z i bez przesycenia (max przesycenie powinno dotyczyć 5% pikseli)
     - [ ] Selektywnego wyrównanie histogramu przez equalizację samodzielnie zaimplementowane według jednego z algorytmów przedstawionych na wykładzie 
-- [ ] !!! Debug 0
 - [] + największy słupek wypełnia cały histogram
 
 ### Zadanie 4 (2p)
@@ -40,9 +39,12 @@ jednoargumentowe na obrazach w odcieniach szarości:
 - [x] redukcja poziomów szarości przez powtórną kwantyzację z liczbą poziomów szarości wskazaną przez użytkownika, 
 - [x] progowanie binarne z progiem wskazywanym przez użytkownika (w kontekście histogramu wyświetlonego na ekranie),
 - [x] progowanie z zachowaniem poziomów szarości z progiem wskazywanym przez użytkownika (w kontekście histogramu wyświetlonego na ekranie)
+- [ ] + tryb grayscale - konwersja
+- [x] ? automatyczna konwersja rgb na greyscale, gdy wszystkie kanały są równe
 
 
 
-- [ ] + spr cały kod i zrefaktoruj, git
+- [ ] + spr cały kod i zrefaktoruj
+- [ ] !!! Prześlij na maila lub git
 
 

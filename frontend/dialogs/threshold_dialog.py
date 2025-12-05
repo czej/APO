@@ -22,7 +22,7 @@ class ThresholdDialog(tk.Toplevel):
         self.mode = mode
         self.on_result_callback = None  # Callback z wynikiem
         
-        title = "Binary Threshold" if mode == "binary" else "Threshold with Levels"
+        title = "Progowanie binarne" if mode == "binary" else "Progowanie z poziomami"
         self.title(title)
         self.geometry("700x550")
         
@@ -44,9 +44,11 @@ class ThresholdDialog(tk.Toplevel):
         
         x = np.arange(256)
         self.ax.bar(x, self.hist_data, color='gray', width=1.0, alpha=0.7, edgecolor='none')
-        self.ax.set_title(f"Histogram - {self.mode.capitalize()} Thresholding")
-        self.ax.set_xlabel("Pixel Value")
-        self.ax.set_ylabel("Frequency")
+        
+        mode_text = "Binarne" if self.mode == "binary" else "Z poziomami"
+        self.ax.set_title(f"Histogram - Progowanie {mode_text}")
+        self.ax.set_xlabel("Wartość piksela")
+        self.ax.set_ylabel("Częstość")
         self.ax.set_xlim(0, 255)
         
         # Linia progu
@@ -55,7 +57,7 @@ class ThresholdDialog(tk.Toplevel):
             color='red', 
             linestyle='--', 
             linewidth=2, 
-            label='Threshold'
+            label='Próg'
         )
         self.ax.legend()
         
@@ -68,7 +70,7 @@ class ThresholdDialog(tk.Toplevel):
         
         tk.Label(
             slider_frame,
-            text="Threshold Value:",
+            text="Wartość progu:",
             font=("Arial", 10)
         ).pack(side=tk.LEFT, padx=(0, 10))
         
@@ -101,16 +103,16 @@ class ThresholdDialog(tk.Toplevel):
         self.preview_var = tk.BooleanVar(value=False)
         tk.Checkbutton(
             preview_frame,
-            text="Show preview",
+            text="Pokaż podgląd",
             variable=self.preview_var,
             command=self._toggle_preview
         ).pack(side=tk.LEFT)
         
         # Info label
         info_text = (
-            "Binary: pixels below threshold → 0, above → 255" 
+            "Binarne: piksele poniżej progu → 0, powyżej → 255" 
             if self.mode == "binary" 
-            else "With Levels: pixels below threshold → 0, above → original value"
+            else "Z poziomami: piksele poniżej progu → 0, powyżej → oryginalna wartość"
         )
         tk.Label(
             preview_frame,
@@ -125,7 +127,7 @@ class ThresholdDialog(tk.Toplevel):
         
         tk.Button(
             button_frame,
-            text="Apply",
+            text="Zastosuj",
             command=self._apply,
             width=10,
             bg="#4CAF50",
@@ -135,7 +137,7 @@ class ThresholdDialog(tk.Toplevel):
         
         tk.Button(
             button_frame,
-            text="Cancel",
+            text="Anuluj",
             command=self.destroy,
             width=10
         ).pack(side=tk.LEFT, padx=5)
@@ -174,17 +176,33 @@ class ThresholdDialog(tk.Toplevel):
             import cv2
             
             self.preview_window = tk.Toplevel(self)
-            self.preview_window.title("Preview")
-            self.preview_window.geometry("400x400")
+            self.preview_window.title("Podgląd")
             
-            self.preview_label = tk.Label(self.preview_window)
+            self.preview_label = tk.Label(self.preview_window, bg='#2b2b2b')
             self.preview_label.pack()
         
-        # Aktualizuj obraz
+        # Skaluj zachowując proporcje do max 600x600
         from PIL import Image, ImageTk
         import cv2
         
-        display = cv2.resize(result, (400, 400), interpolation=cv2.INTER_NEAREST)
+        h, w = result.shape[:2]
+        max_size = 600
+        
+        # Oblicz współczynnik skalowania
+        scale = min(max_size / w, max_size / h)
+        
+        # Jeśli obraz jest większy niż max_size, przeskaluj
+        if scale < 1.0:
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            display = cv2.resize(result, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+        else:
+            display = result
+        
+        # Ustaw rozmiar okna na rozmiar obrazu
+        self.preview_window.geometry(f"{display.shape[1]}x{display.shape[0]}")
+        
+        # Konwertuj i wyświetl
         img_pil = Image.fromarray(display)
         img_tk = ImageTk.PhotoImage(img_pil)
         
