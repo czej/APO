@@ -5,7 +5,7 @@ import numpy as np
 
 from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
-from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog
+from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
 from backend.AppManager import AppManager
 
 
@@ -85,10 +85,11 @@ class MainWindow:
         math_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Matematyka", menu=math_menu)
         math_menu.add_command(label="Dodaj obrazy", command=self.apply_add_images)
-        math_menu.add_command(label="Dodaj")
-        math_menu.add_command(label="Odejmij")
-        math_menu.add_command(label="Pomnóż")
-        math_menu.add_command(label="Podziel")
+        math_menu.add_separator()
+        math_menu.add_command(label="Dodaj liczbę", command=self.apply_add_scalar)
+        math_menu.add_command(label="Pomnóż przez liczbę", command=self.apply_multiply_scalar)
+        math_menu.add_command(label="Podziel przez liczbę", command=self.apply_divide_scalar)
+        math_menu.add_separator()
         math_menu.add_command(label="Różnica bezwzględna", command=self.apply_absolute_difference)
         
         # Logical operations submenu
@@ -442,6 +443,39 @@ class MainWindow:
             self.app_manager
         )
         dialog.on_result_callback = lambda img: self._show_result(img, "Dodawanie obrazów")
+
+    @_require_grayscale
+    def apply_add_scalar(self):
+        """Dodawanie liczby do obrazu"""
+        dialog = ScalarOperationDialog(
+            self.root,
+            "Dodaj",
+            self.current_image,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Dodawanie liczby")
+    
+    @_require_grayscale
+    def apply_multiply_scalar(self):
+        """Mnożenie obrazu przez liczbę"""
+        dialog = ScalarOperationDialog(
+            self.root,
+            "Pomnóż",
+            self.current_image,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Mnożenie przez liczbę")
+    
+    @_require_grayscale
+    def apply_divide_scalar(self):
+        """Dzielenie obrazu przez liczbę"""
+        dialog = ScalarOperationDialog(
+            self.root,
+            "Podziel",
+            self.current_image,
+            self.app_manager
+        )
+        dialog.on_result_callback = lambda img: self._show_result(img, "Dzielenie przez liczbę")
     
     @_require_multiple_images(min_count=2)
     def apply_absolute_difference(self):

@@ -109,3 +109,95 @@ class ArithmeticOperations:
         result = result.astype(np.uint8)
         
         return result
+    
+    @staticmethod
+    def add_scalar(img, scalar, saturation=True):
+        """
+        Dodawanie liczby całkowitej do obrazu.
+        
+        Parametry:
+            img: obraz numpy.ndarray (grayscale)
+            scalar: liczba całkowita do dodania
+            saturation: True (z wysyceniem) / False (bez wysycenia - skalowanie)
+        
+        Zwraca:
+            obraz wynikowy
+        """
+        if len(img.shape) != 2:
+            raise ValueError("Obraz musi być w odcieniach szarości")
+        
+        if saturation:
+            # Z wysyceniem - po prostu dodaj i obetnij
+            result = img.astype(np.int16) + scalar
+            result = np.clip(result, 0, 255).astype(np.uint8)
+        else:
+            # Bez wysycenia - skaluj do zakresu 0-255
+            result = img.astype(np.int16) + scalar
+            # Normalizuj wynik do 0-255
+            result_min = np.min(result)
+            result_max = np.max(result)
+            if result_max == result_min:
+                result = np.full_like(img, 128, dtype=np.uint8)
+            else:
+                result = ((result - result_min) * 255 / (result_max - result_min)).astype(np.uint8)
+        
+        return result
+    
+    @staticmethod
+    def multiply_scalar(img, scalar, saturation=True):
+        """
+        Mnożenie obrazu przez liczbę całkowitą.
+        
+        Parametry:
+            img: obraz numpy.ndarray (grayscale)
+            scalar: liczba całkowita do mnożenia
+            saturation: True (z wysyceniem) / False (bez wysycenia - skalowanie)
+        
+        Zwraca:
+            obraz wynikowy
+        """
+        if len(img.shape) != 2:
+            raise ValueError("Obraz musi być w odcieniach szarości")
+        
+        if scalar == 0:
+            return np.zeros_like(img)
+        
+        if saturation:
+            # Z wysyceniem
+            result = img.astype(np.float32) * scalar
+            result = np.clip(result, 0, 255).astype(np.uint8)
+        else:
+            # Bez wysycenia - skaluj obraz przed mnożeniem
+            if scalar > 1:
+                # Przeskaluj obraz do zakresu [0, 255/scalar]
+                max_scale_value = 255 // scalar
+                scaled = cv2.normalize(img, None, 0, max_scale_value, cv2.NORM_MINMAX)
+                result = (scaled.astype(np.float32) * scalar).astype(np.uint8)
+            else:
+                # Dla scalar <= 1 nie ma ryzyka przepełnienia
+                result = (img.astype(np.float32) * scalar).astype(np.uint8)
+        
+        return result
+    
+    @staticmethod
+    def divide_scalar(img, scalar):
+        """
+        Dzielenie obrazu przez liczbę całkowitą.
+        
+        Parametry:
+            img: obraz numpy.ndarray (grayscale)
+            scalar: liczba całkowita do dzielenia (> 0)
+        
+        Zwraca:
+            obraz wynikowy
+        """
+        if len(img.shape) != 2:
+            raise ValueError("Obraz musi być w odcieniach szarości")
+        
+        if scalar == 0:
+            raise ValueError("Nie można dzielić przez zero!")
+        
+        # Dzielenie nie powoduje przepełnienia, więc nie ma wysycenia
+        result = (img.astype(np.float32) / scalar).astype(np.uint8)
+        
+        return result

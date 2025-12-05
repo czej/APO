@@ -89,3 +89,18 @@ class AppManager:
     def apply_absolute_difference(img1, img2):
         """Różnica bezwzględna obrazów"""
         return ArithmeticOperations.absolute_difference(img1, img2)
+    
+    @staticmethod
+    def apply_add_scalar(img, scalar, saturation=True):
+        """Dodawanie liczby do obrazu"""
+        return ArithmeticOperations.add_scalar(img, scalar, saturation)
+    
+    @staticmethod
+    def apply_multiply_scalar(img, scalar, saturation=True):
+        """Mnożenie obrazu przez liczbę"""
+        return ArithmeticOperations.multiply_scalar(img, scalar, saturation)
+    
+    @staticmethod
+    def apply_divide_scalar(img, scalar):
+        """Dzielenie obrazu przez liczbę"""
+        return ArithmeticOperations.divide_scalar(img, scalar)
