@@ -255,6 +255,12 @@ class MainWindow:
         # Remove alpha channel if exists
         if len(img.shape) == 3 and img.shape[2] == 4:
             img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+        # Automatic grayscale conversion
+        if len(img.shape) == 3 and img.shape[2] == 3:
+            # RGB -> Grayscale (if all channels are equal)
+            if np.all(img[:,:,0] == img[:,:,1]) and np.all(img[:,:,1] == img[:,:,2]):
+                img = img[:,:,0]
         
         self.images.append(img)
         self.current_image = img
