@@ -68,13 +68,13 @@ class MainWindow:
         # Thresholding submenu
         threshold_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Binaryzacja", menu=threshold_menu)
-        threshold_menu.add_command(label="Progowanie...", command=self.apply_threshold_binary)
-        threshold_menu.add_command(label="Progowanie z poziomami...", command=self.apply_threshold_levels)
+        threshold_menu.add_command(label="Progowanie", command=self.apply_threshold_binary)
+        threshold_menu.add_command(label="Progowanie z poziomami", command=self.apply_threshold_levels)
         
         process_menu.add_separator()
         
         # Histogram operations
-        process_menu.add_command(label="Rozciągnij kontrast...", command=self.apply_stretch_histogram)
+        process_menu.add_command(label="Rozciągnij histogram", command=self.apply_stretch_histogram)
         process_menu.add_command(label="Wyrównaj histogram", command=self.apply_equalize_histogram)
         
         # PROCESS MENU - LAB 2

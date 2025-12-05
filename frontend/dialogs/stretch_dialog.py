@@ -22,8 +22,8 @@ class StretchDialog(tk.Toplevel):
         self.app_manager = app_manager
         self.on_result_callback = None
         
-        self.title("Enhance Contrast - Histogram Stretching")
-        self.geometry("800x650")
+        self.title("Rozciąganie histogramu")
+        self.geometry("800x750")
         
         self._create_ui()
         
@@ -36,7 +36,7 @@ class StretchDialog(tk.Toplevel):
         
         tk.Label(
             header_frame,
-            text="Histogram Stretching - Enhance Contrast",
+            text="Rozciąganie histogramu",
             font=("Arial", 12, "bold"),
             bg="#f0f0f0"
         ).pack(pady=12)
@@ -52,7 +52,7 @@ class StretchDialog(tk.Toplevel):
         # Original histogram
         tk.Label(
             left_frame,
-            text="Original Histogram",
+            text="Oryginalny histogram",
             font=("Arial", 10, "bold")
         ).pack(pady=(0, 5))
         
@@ -65,7 +65,7 @@ class StretchDialog(tk.Toplevel):
         x = np.arange(256)
         self.ax_orig.bar(x, self.hist_data, color='gray', width=1.0, alpha=0.7, edgecolor='none')
         self.ax_orig.set_xlim(0, 255)
-        self.ax_orig.set_ylabel("Frequency", fontsize=8)
+        self.ax_orig.set_ylabel("Częstość", fontsize=8)
         self.ax_orig.tick_params(labelsize=8)
         
         canvas_orig = FigureCanvasTkAgg(self.fig_orig, master=left_frame)
@@ -74,7 +74,7 @@ class StretchDialog(tk.Toplevel):
         # Stretched histogram preview
         tk.Label(
             left_frame,
-            text="Stretched Histogram (Preview)",
+            text="Rozciągnięty histogram (podgląd)",
             font=("Arial", 10, "bold")
         ).pack(pady=(10, 5))
         
@@ -92,23 +92,23 @@ class StretchDialog(tk.Toplevel):
         # Saturation options
         tk.Label(
             right_frame,
-            text="Saturation Options",
+            text="Opcje przesycenia",
             font=("Arial", 10, "bold")
         ).pack(pady=(10, 10))
         
         tk.Label(
             right_frame,
-            text="Clip percentage:",
+            text="Procent obcięcia:",
             font=("Arial", 9)
         ).pack(anchor="w", padx=10)
         
         self.saturation_var = tk.DoubleVar(value=0)
         
         options = [
-            ("No saturation (0%)", 0),
-            ("1% saturation", 1),
-            ("2% saturation", 2),
-            ("5% saturation (max)", 5)
+            ("Bez przesycenia (0%)", 0),
+            ("1% przesycenia", 1),
+            ("2% przesycenia", 2),
+            ("5% przesycenia (max)", 5)
         ]
         
         for text, val in options:
@@ -120,29 +120,8 @@ class StretchDialog(tk.Toplevel):
                 command=self._update_preview
             ).pack(anchor="w", padx=20, pady=3)
         
-        # Info box
-        info_frame = tk.LabelFrame(right_frame, text="Info", font=("Arial", 9, "bold"))
-        info_frame.pack(pady=20, padx=10, fill=tk.X)
-        
-        info_text = (
-            "Histogram stretching enhances\n"
-            "contrast by expanding the range\n"
-            "of intensity values.\n\n"
-            "• 0% = use min/max values\n"
-            "• 1-5% = clip outliers for\n"
-            "  better contrast"
-        )
-        
-        tk.Label(
-            info_frame,
-            text=info_text,
-            font=("Arial", 8),
-            justify=tk.LEFT,
-            fg="#444"
-        ).pack(padx=10, pady=10, anchor="w")
-        
         # Statistics
-        stats_frame = tk.LabelFrame(right_frame, text="Statistics", font=("Arial", 9, "bold"))
+        stats_frame = tk.LabelFrame(right_frame, text="Statystyki", font=("Arial", 9, "bold"))
         stats_frame.pack(pady=10, padx=10, fill=tk.X)
         
         self.stats_label = tk.Label(
@@ -155,22 +134,13 @@ class StretchDialog(tk.Toplevel):
         self.stats_label.pack(padx=10, pady=10, anchor="w")
         self._update_stats()
         
-        # Preview checkbox
-        self.preview_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(
-            right_frame,
-            text="Auto preview",
-            variable=self.preview_var,
-            command=self._update_preview
-        ).pack(pady=10)
-        
         # Buttons
         button_frame = tk.Frame(self)
         button_frame.pack(side=tk.BOTTOM, pady=15)
         
         tk.Button(
             button_frame,
-            text="Apply",
+            text="Zastosuj",
             command=self._apply,
             width=12,
             bg="#4CAF50",
@@ -180,14 +150,14 @@ class StretchDialog(tk.Toplevel):
         
         tk.Button(
             button_frame,
-            text="Reset",
+            text="Resetuj",
             command=self._reset,
             width=12
         ).pack(side=tk.LEFT, padx=5)
         
         tk.Button(
             button_frame,
-            text="Cancel",
+            text="Anuluj",
             command=self.destroy,
             width=12
         ).pack(side=tk.LEFT, padx=5)
@@ -197,9 +167,6 @@ class StretchDialog(tk.Toplevel):
         
     def _update_preview(self):
         """Aktualizuje podgląd rozciągniętego histogramu"""
-        if not self.preview_var.get():
-            return
-        
         saturation = self.saturation_var.get()
         result = self.app_manager.apply_stretch_histogram(self.img, saturation)
         
@@ -213,34 +180,34 @@ class StretchDialog(tk.Toplevel):
         x = np.arange(256)
         self.ax_stretched.bar(x, hist_result, color='blue', width=1.0, alpha=0.7, edgecolor='none')
         self.ax_stretched.set_xlim(0, 255)
-        self.ax_stretched.set_ylabel("Frequency", fontsize=8)
+        self.ax_stretched.set_ylabel("Częstość", fontsize=8)
         self.ax_stretched.tick_params(labelsize=8)
         
         self.canvas_stretched.draw()
         
         # Aktualizuj statystyki
         self._update_stats(result)
-        
+
     def _update_stats(self, result=None):
         """Aktualizuje statystyki"""
         orig_min = np.min(self.img)
         orig_max = np.max(self.img)
         orig_mean = np.mean(self.img)
         
-        stats_text = f"Original:\n"
+        stats_text = f"Oryginalny:\n"
         stats_text += f"  Min: {orig_min:3d}\n"
         stats_text += f"  Max: {orig_max:3d}\n"
-        stats_text += f"  Mean: {orig_mean:.1f}\n"
+        stats_text += f"  Średnia: {orig_mean:.1f}\n"
         
         if result is not None:
             result_min = np.min(result)
             result_max = np.max(result)
             result_mean = np.mean(result)
             
-            stats_text += f"\nStretched:\n"
+            stats_text += f"\nRozciągnięty:\n"
             stats_text += f"  Min: {result_min:3d}\n"
             stats_text += f"  Max: {result_max:3d}\n"
-            stats_text += f"  Mean: {result_mean:.1f}"
+            stats_text += f"  Średnia: {result_mean:.1f}"
         
         self.stats_label.config(text=stats_text)
         
@@ -261,4 +228,4 @@ class StretchDialog(tk.Toplevel):
             self.destroy()
         except ValueError as e:
             from tkinter import messagebox
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Błąd", str(e))
