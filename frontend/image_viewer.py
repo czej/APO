@@ -26,6 +26,7 @@ class ImageViewer:
         
         # Bind focus event
         self.window.bind("<FocusIn>", self._on_focus)
+        self.window.bind("<Configure>", self._on_resize)
         
         self._display_image()
         
@@ -50,7 +51,11 @@ class ImageViewer:
         if self.scale == 'fit':
             # Dopasuj do rozmiaru 800x600
             img_rgb = self._resize_keep_aspect(img_rgb, 800, 600)
-            self.window.geometry(f"{img_rgb.shape[1]}x{img_rgb.shape[0]}")
+            # Ustaw rozmiar bez marginesów
+            img_h, img_w = img_rgb.shape[:2]
+            self.window.geometry(f"{img_w}x{img_h + 25}")
+            # Wyłącz padding okna
+            self.window.configure(padx=0, pady=0)
         elif self.scale == 'fullscreen':
             screen_w = self.parent.winfo_screenwidth()
             screen_h = self.parent.winfo_screenheight()
@@ -65,9 +70,19 @@ class ImageViewer:
         img_pil = Image.fromarray(img_rgb)
         self.photo_image = ImageTk.PhotoImage(img_pil)
         
-        # Label z obrazem
-        self.label = tk.Label(self.window, image=self.photo_image)
-        self.label.pack()
+       # Frame bez paddingu
+        container = tk.Frame(self.window, bg='#e0e0e0')
+        container.pack(fill=tk.BOTH, expand=True)
+        container.pack_propagate(False)
+
+        # Label z obrazem - bez żadnych marginesów
+        self.label = tk.Label(container, image=self.photo_image, bg='#e0e0e0', bd=0, highlightthickness=0)
+        self.label.pack(fill=tk.BOTH, expand=True)
+
+        # Zapisz aktualny rozmiar okna dla resize
+        self.window.update_idletasks()
+        self.last_width = self.window.winfo_width()
+        self.last_height = self.window.winfo_height()
         
         # Info bar na dole
         self._create_info_bar()
@@ -75,21 +90,23 @@ class ImageViewer:
     def _resize_keep_aspect(self, img, max_width, max_height):
         """Zmienia rozmiar obrazu zachowując proporcje"""
         h, w = img.shape[:2]
-        aspect = w / h
         
-        if w > max_width or h > max_height:
-            if aspect > 1:
-                # Szerszy niż wyższy
-                new_w = max_width
-                new_h = int(max_width / aspect)
-            else:
-                # Wyższy niż szerszy
-                new_h = max_height
-                new_w = int(max_height * aspect)
-            
-            return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        # Oblicz współczynniki skalowania dla obu wymiarów
+        scale_w = max_width / w
+        scale_h = max_height / h
         
-        return img
+        # Wybierz mniejszy współczynnik (żeby obraz zmieścił się w obu wymiarach)
+        scale = min(scale_w, scale_h)
+        
+        # Jeśli obraz jest mniejszy niż max, nie powiększaj
+        if scale >= 1.0:
+            return img
+        
+        # Oblicz nowy rozmiar
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        
+        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
     
     def _create_info_bar(self):
         """Tworzy pasek informacji na dole okna"""
@@ -115,8 +132,6 @@ class ImageViewer:
     def _create_context_menu(self):
         """Tworzy menu kontekstowe (PPM)"""
         self.context_menu = tk.Menu(self.window, tearoff=0)
-        self.context_menu.add_command(label="Duplicate", command=self._duplicate)
-        self.context_menu.add_command(label="Save As...", command=self._save_as)
         self.context_menu.add_separator()
         
         # Submenu Scale
@@ -157,11 +172,50 @@ class ImageViewer:
         """Wywoływane gdy okno otrzyma focus"""
         if self.on_focus_callback:
             self.on_focus_callback()
-            
-    def _duplicate(self):
-        """Duplikuje obraz (TODO: połączyć z MainWindow)"""
-        pass
+
+    def _on_resize(self, event):
+        """Automatyczne skalowanie obrazu przy zmianie rozmiaru okna"""
+        # Ignoruj wydarzenia dla innych widgetów
+        if event.widget != self.window:
+            return
         
-    def _save_as(self):
-        """Zapisuje obraz (TODO: połączyć z MainWindow)"""
-        pass
+        # Sprawdź czy rozmiar faktycznie się zmienił (unikaj pętli)
+        if hasattr(self, 'last_width') and hasattr(self, 'last_height'):
+            if abs(event.width - self.last_width) < 10 and abs(event.height - self.last_height) < 10:
+                return
+        
+        self.last_width = event.width
+        self.last_height = event.height
+        
+        # Tylko dla trybu 'fit' i 'original' (nie fullscreen)
+        if self.scale == 'fullscreen':
+            return
+        
+        # Pobierz rozmiar okna (odejmij margines na info bar ~25px)
+        target_width = event.width - 10
+        target_height = event.height - 35  # Info bar na dole
+        
+        if target_width <= 0 or target_height <= 0:
+            return
+        
+        # Przeskaluj obraz proporcjonalnie
+        img = self.original_img.copy()
+        
+        # Konwersja do RGB
+        if len(img.shape) == 2:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        elif img.shape[2] == 3:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        else:
+            img_rgb = img
+        
+        # Skaluj zachowując proporcje
+        img_resized = self._resize_keep_aspect(img_rgb, target_width, target_height)
+        
+        # Aktualizuj PhotoImage
+        from PIL import Image, ImageTk
+        img_pil = Image.fromarray(img_resized)
+        self.photo_image = ImageTk.PhotoImage(img_pil)
+        
+        # Aktualizuj label
+        self.label.config(image=self.photo_image)
