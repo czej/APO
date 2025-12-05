@@ -99,8 +99,8 @@ class ImageViewer:
         scale = min(scale_w, scale_h)
         
         # Jeśli obraz jest mniejszy niż max, nie powiększaj
-        if scale >= 1.0:
-            return img
+        # if scale >= 1.0:
+        #     return img
         
         # Oblicz nowy rozmiar
         new_w = int(w * scale)
