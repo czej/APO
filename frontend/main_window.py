@@ -7,7 +7,7 @@ from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
 from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
-from frontend.dialogs import MorphologyDialog, SkeletonizationDialog
+from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from backend.AppManager import AppManager
 
 
@@ -73,8 +73,13 @@ class MainWindow:
         process_menu.add_cascade(label="Binaryzacja", menu=threshold_menu)
         threshold_menu.add_command(label="Progowanie", command=self.apply_threshold_binary)
         threshold_menu.add_command(label="Progowanie z poziomami", command=self.apply_threshold_levels)
-        
-        process_menu.add_separator()
+
+        # Segmentation
+        segmentation_menu = Menu(process_menu, tearoff=0)
+        process_menu.add_cascade(label="Segmentacja", menu=segmentation_menu)
+        segmentation_menu.add_command(label="Progowanie z dwoma progami", command=self.apply_double_threshold)
+        segmentation_menu.add_command(label="Progowanie Otsu", command=self.apply_otsu_threshold)
+        segmentation_menu.add_command(label="Progowanie adaptacyjne", command=self.apply_adaptive_threshold)
         
         # Histogram operations
         process_menu.add_command(label="Rozciągnij histogram", command=self.apply_stretch_histogram)
@@ -610,6 +615,35 @@ class MainWindow:
         """Detekcja krawędzi Canny"""
         dialog = CannyDialog(self.root, self.current_image, self.app_manager)
         dialog.on_result_callback = lambda img: self._show_result(img, "Canny")
+
+    # ============ SEGMENTATION OPERATIONS - LAB 3 Zadanie 2 ============
+
+    @_require_grayscale
+    def apply_double_threshold(self):
+        """Progowanie z dwoma progami"""
+        try:
+            dialog = DoubleThresholdDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Progowanie dwoma progami")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_otsu_threshold(self):
+        """Progowanie metodą Otsu"""
+        try:
+            dialog = OtsuThresholdDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Progowanie Otsu")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_adaptive_threshold(self):
+        """Progowanie adaptacyjne"""
+        try:
+            dialog = AdaptiveThresholdDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Progowanie adaptacyjne")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
 
     # ============ MORPHOLOGY OPERATIONS - LAB 3 ============
 

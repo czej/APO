@@ -9,6 +9,7 @@ from .binary_operation_dialog import BinaryOperationDialog
 from .scalar_operation_dialog import ScalarOperationDialog
 from .convolution_dialog import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from .morphology_dialog import MorphologyDialog, SkeletonizationDialog
+from .segmentation_dialog import DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 
 __all__ = [
     'ThresholdDialog',
@@ -24,5 +25,8 @@ __all__ = [
     'MedianDialog',
     'CannyDialog',
     'MorphologyDialog', 
-    'SkeletonizationDialog'
+    'SkeletonizationDialog',
+    'DoubleThresholdDialog',
+    'OtsuThresholdDialog',
+    'AdaptiveThresholdDialog'
 ]
