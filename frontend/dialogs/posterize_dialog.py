@@ -1,7 +1,4 @@
 import tkinter as tk
-from PIL import Image, ImageTk
-import cv2
-
 
 class PosterizeDialog(tk.Toplevel):
     """Dialog do posteryzacji (redukcji poziomów szarości)"""
