@@ -7,7 +7,7 @@ from .posterize_dialog import PosterizeDialog
 from .stretch_dialog import StretchDialog
 from .binary_operation_dialog import BinaryOperationDialog
 from .scalar_operation_dialog import ScalarOperationDialog
-from .convolution_dialog import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog
+from .convolution_dialog import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 
 __all__ = [
     'ThresholdDialog',
@@ -19,5 +19,7 @@ __all__ = [
     'SharpeningDialog',
     'PrewittDialog',
     'SobelDialog',
-    'CustomMaskDialog'
+    'CustomMaskDialog',
+    'MedianDialog',
+    'CannyDialog'
 ]

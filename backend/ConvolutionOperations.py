@@ -355,3 +355,84 @@ class ConvolutionOperations:
     def get_border_types(self):
         """Zwraca listę typów brzegów"""
         return list(self.BORDER_TYPES.keys())
+    
+    # ==================== CANNY EDGE DETECTION ====================
+    
+    def apply_canny(self, img, threshold1=100, threshold2=200):
+        """
+        Detekcja krawędzi operatorem Canny'ego
+        
+        Args:
+            img: Obraz wejściowy (grayscale)
+            threshold1: Dolny próg histerezy
+            threshold2: Górny próg histerezy
+        
+        Returns:
+            Obraz binarny z krawędziami
+        """
+        self._validate_image(img)
+        
+        result = cv2.Canny(
+            image=img,
+            threshold1=threshold1,
+            threshold2=threshold2,
+            apertureSize=3,
+            L2gradient=False
+        )
+        
+        return result
+    
+    # ==================== MEDIAN FILTER ====================
+    
+    def apply_median(self, img, kernel_size=3, border_type="BORDER_REFLECT", border_value=0):
+        """
+        Filtr medianowy
+        
+        Args:
+            img: Obraz wejściowy (grayscale)
+            kernel_size: Rozmiar kernela (3, 5, 7, 9)
+            border_type: Typ brzegu
+            border_value: Wartość dla BORDER_CONSTANT
+        
+        Returns:
+            Przefiltrowany obraz
+        """
+        self._validate_image(img)
+        
+        if kernel_size not in [3, 5, 7, 9]:
+            raise ValueError("Rozmiar kernela musi być 3, 5, 7 lub 9")
+        
+        # Obsługa "Wypełnienie wyniku stałą"
+        if border_type == "Wypełnienie wyniku stałą":
+            result = np.full_like(img, border_value, dtype=np.uint8)
+            
+            pad = kernel_size // 2
+            h, w = img.shape
+            
+            for i in range(pad, h - pad):
+                for j in range(pad, w - pad):
+                    roi = img[i-pad:i+pad+1, j-pad:j+pad+1]
+                    result[i, j] = np.median(roi)
+            
+            return result
+        else:
+            border = self.BORDER_TYPES[border_type]
+            
+            # Dla BORDER_CONSTANT dodaj ramkę
+            if border == cv2.BORDER_CONSTANT:
+                pad = kernel_size // 2
+                padded = cv2.copyMakeBorder(
+                    src=img,
+                    top=pad,
+                    bottom=pad,
+                    left=pad,
+                    right=pad,
+                    borderType=cv2.BORDER_CONSTANT,
+                    value=float(border_value)
+                )
+                result = cv2.medianBlur(src=padded, ksize=kernel_size)
+                result = result[pad:-pad, pad:-pad]
+            else:
+                result = cv2.medianBlur(src=img, ksize=kernel_size)
+            
+            return result

@@ -475,3 +475,231 @@ class CustomMaskDialog(ConvolutionDialog):
             total = 1.0
         
         self.divisor_var.set(f"{total:.2f}")
+
+
+class CannyDialog:
+    """Dialog dla detekcji krawędzi Canny"""
+    
+    def __init__(self, parent, image, app_manager):
+        self.parent = parent
+        self.image = image
+        self.app_manager = app_manager
+        self.result = None
+        self.on_result_callback = None
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("Detekcja krawędzi - Canny")
+        self.window.geometry("400x250")
+        self.window.resizable(False, False)
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        self._create_widgets()
+    
+    def _create_widgets(self):
+        main_frame = ttk.Frame(self.window, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(
+            main_frame, 
+            text="Operator Canny'ego - detekcja krawędzi z histerezą",
+            font=('Arial', 10, 'bold')
+        ).pack(pady=(0, 15))
+        
+        # Threshold 1
+        threshold1_frame = ttk.Frame(main_frame)
+        threshold1_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(threshold1_frame, text="Dolny próg:").pack(side=tk.LEFT, padx=5)
+        
+        self.threshold1_var = tk.IntVar(value=100)
+        ttk.Spinbox(
+            threshold1_frame,
+            from_=0,
+            to=255,
+            textvariable=self.threshold1_var,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Threshold 2
+        threshold2_frame = ttk.Frame(main_frame)
+        threshold2_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(threshold2_frame, text="Górny próg:").pack(side=tk.LEFT, padx=5)
+        
+        self.threshold2_var = tk.IntVar(value=200)
+        ttk.Spinbox(
+            threshold2_frame,
+            from_=0,
+            to=255,
+            textvariable=self.threshold2_var,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(
+            main_frame,
+            text="Zalecane: górny próg = 2-3 × dolny próg",
+            font=('Arial', 8),
+            foreground='#666'
+        ).pack(pady=10)
+        
+        # Przyciski
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=20)
+        
+        ttk.Button(
+            button_frame,
+            text="Zastosuj",
+            command=self._apply_and_show,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            button_frame,
+            text="Anuluj",
+            command=self.window.destroy,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+    
+    def _apply_and_show(self):
+        try:
+            result = self.app_manager.apply_canny(
+                self.image,
+                self.threshold1_var.get(),
+                self.threshold2_var.get()
+            )
+            
+            if self.on_result_callback:
+                self.on_result_callback(result)
+            
+            self.window.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Błąd", f"Nie udało się wykonać operacji:\n{str(e)}")
+
+
+class MedianDialog:
+    """Dialog dla filtru medianowego"""
+    
+    def __init__(self, parent, image, app_manager):
+        self.parent = parent
+        self.image = image
+        self.app_manager = app_manager
+        self.result = None
+        self.on_result_callback = None
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("Filtr medianowy")
+        self.window.geometry("400x300")
+        self.window.resizable(False, False)
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        self._create_widgets()
+    
+    def _create_widgets(self):
+        main_frame = ttk.Frame(self.window, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(
+            main_frame, 
+            text="Filtr medianowy - redukcja szumu",
+            font=('Arial', 10, 'bold')
+        ).pack(pady=(0, 15))
+        
+        # Rozmiar kernela
+        size_frame = ttk.Frame(main_frame)
+        size_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(size_frame, text="Rozmiar otoczenia:").pack(side=tk.LEFT, padx=5)
+        
+        self.size_var = tk.IntVar(value=3)
+        size_combo = ttk.Combobox(
+            size_frame,
+            textvariable=self.size_var,
+            values=[3, 5, 7, 9],
+            state='readonly',
+            width=15
+        )
+        size_combo.pack(side=tk.LEFT, padx=5)
+        
+        # Separator
+        ttk.Separator(main_frame, orient='horizontal').pack(fill='x', pady=10)
+        
+        # Typ brzegu
+        border_frame = ttk.Frame(main_frame)
+        border_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(border_frame, text="Typ brzegu:").pack(side=tk.LEFT, padx=5)
+        
+        self.border_type_var = tk.StringVar(value="BORDER_REFLECT")
+        border_combo = ttk.Combobox(
+            border_frame,
+            textvariable=self.border_type_var,
+            values=self.app_manager.get_border_types(),
+            state='readonly',
+            width=25
+        )
+        border_combo.pack(side=tk.LEFT, padx=5)
+        border_combo.bind('<<ComboboxSelected>>', self._on_border_type_changed)
+        
+        # Wartość stała
+        value_frame = ttk.Frame(main_frame)
+        value_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(value_frame, text="Wartość stała (0-255):").pack(side=tk.LEFT, padx=5)
+        
+        self.border_value_var = tk.IntVar(value=0)
+        self.border_value_spinbox = ttk.Spinbox(
+            value_frame,
+            from_=0,
+            to=255,
+            textvariable=self.border_value_var,
+            width=23,
+            state='disabled'
+        )
+        self.border_value_spinbox.pack(side=tk.LEFT, padx=5)
+        
+        # Przyciski
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=20)
+        
+        ttk.Button(
+            button_frame,
+            text="Zastosuj",
+            command=self._apply_and_show,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            button_frame,
+            text="Anuluj",
+            command=self.window.destroy,
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+    
+    def _on_border_type_changed(self, event=None):
+        border_type = self.border_type_var.get()
+        if border_type in ["BORDER_CONSTANT", "Wypełnienie wyniku stałą"]:
+            self.border_value_spinbox.config(state='normal')
+        else:
+            self.border_value_spinbox.config(state='disabled')
+    
+    def _apply_and_show(self):
+        try:
+            result = self.app_manager.apply_median(
+                self.image,
+                self.size_var.get(),
+                self.border_type_var.get(),
+                self.border_value_var.get()
+            )
+            
+            if self.on_result_callback:
+                self.on_result_callback(result)
+            
+            self.window.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Błąd", f"Nie udało się wykonać operacji:\n{str(e)}")

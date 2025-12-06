@@ -162,3 +162,14 @@ class AppManager:
         conv_ops = ConvolutionOperations()
         return conv_ops.get_border_types()
     
+    @staticmethod
+    def apply_median(img, kernel_size=3, border_type="BORDER_REFLECT", border_value=0):
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_median(img, kernel_size, border_type, border_value)
+    
+    @staticmethod
+    def apply_canny(img, threshold1=100, threshold2=200):
+        """Detekcja krawędzi Canny"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_canny(img, threshold1, threshold2)
+    

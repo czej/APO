@@ -6,7 +6,7 @@ import numpy as np
 from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
 from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
-from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog
+from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from backend.AppManager import AppManager
 
 
@@ -107,14 +107,14 @@ class MainWindow:
         filters_menu.add_command(label="Wygładzanie", command=self.apply_smoothing)
         filters_menu.add_command(label="Własna maska 3x3", command=self.apply_custom_mask)
         filters_menu.add_command(label="Wyostrzanie (Laplasjan)", command=self.apply_sharpening)
-        filters_menu.add_command(label="Mediana...")
+        filters_menu.add_command(label="Mediana", command=self.apply_median)
         
         # Edge detection submenu
         edge_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Wykrywanie krawędzi", menu=edge_menu)
         edge_menu.add_command(label="Sobel", command=self.apply_sobel)
         edge_menu.add_command(label="Prewitt (kierunkowy)", command=self.apply_prewitt)
-        edge_menu.add_command(label="Canny...", command=self.apply_canny)
+        edge_menu.add_command(label="Canny", command=self.apply_canny)
         
         # ANALYZE MENU - LAB 3 & 4
         analyze_menu = Menu(menubar, tearoff=0)
@@ -598,9 +598,15 @@ class MainWindow:
         dialog.on_result_callback = lambda img: self._show_result(img, "Sobel")
 
     @_require_grayscale
+    def apply_median(self):
+        dialog = MedianDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Mediana")
+
+    @_require_grayscale
     def apply_canny(self):
-        """Detekcja krawędzi Canny (placeholder dla zadania 5)"""
-        messagebox.showinfo("W przygotowaniu", "Operator Canny zostanie zaimplementowany w zadaniu 5")
+        """Detekcja krawędzi Canny"""
+        dialog = CannyDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Canny")
     
     # ============ WINDOW MANAGEMENT ============
     
