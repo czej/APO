@@ -4,6 +4,7 @@ from backend.LogicalOperations import LogicalOperations
 from backend.MaskOperations import MaskOperations
 from backend.ArithmeticOperations import ArithmeticOperations
 from backend.ConvolutionOperations import ConvolutionOperations
+from backend.MorphologyOperations import MorphologyOperations
 
 class AppManager:
     @staticmethod
@@ -172,4 +173,21 @@ class AppManager:
         """Detekcja krawędzi Canny"""
         conv_ops = ConvolutionOperations()
         return conv_ops.apply_canny(img, threshold1, threshold2)
+    
+    # ============ MORPHOLOGY OPERATIONS ============
+
+    def morphology_erosion(self, image, element_shape='rect', element_size=3, iterations=1):
+        return MorphologyOperations.erosion(image, element_shape, element_size, iterations)
+
+    def morphology_dilation(self, image, element_shape='rect', element_size=3, iterations=1):
+        return MorphologyOperations.dilation(image, element_shape, element_size, iterations)
+
+    def morphology_opening(self, image, element_shape='rect', element_size=3, iterations=1):
+        return MorphologyOperations.opening(image, element_shape, element_size, iterations)
+
+    def morphology_closing(self, image, element_shape='rect', element_size=3, iterations=1):
+        return MorphologyOperations.closing(image, element_shape, element_size, iterations)
+
+    def morphology_skeletonization(self, image):
+        return MorphologyOperations.skeletonization(image)
     

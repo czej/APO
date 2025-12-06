@@ -7,6 +7,7 @@ from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
 from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
+from frontend.dialogs import MorphologyDialog, SkeletonizationDialog
 from backend.AppManager import AppManager
 
 
@@ -125,13 +126,15 @@ class MainWindow:
         analyze_menu.add_command(label="Ustaw pomiary...")
         
         # Morphology submenu
+        # Morphology submenu - LAB 3
         morphology_menu = Menu(analyze_menu, tearoff=0)
         analyze_menu.add_cascade(label="Morfologia", menu=morphology_menu)
-        morphology_menu.add_command(label="Erozja")
-        morphology_menu.add_command(label="Dylacja")
-        morphology_menu.add_command(label="Otwarcie")
-        morphology_menu.add_command(label="Zamknięcie")
-        morphology_menu.add_command(label="Szkieletyzacja")
+        morphology_menu.add_command(label="Erozja", command=self.apply_erosion)
+        morphology_menu.add_command(label="Dylacja", command=self.apply_dilation)
+        morphology_menu.add_command(label="Otwarcie", command=self.apply_opening)
+        morphology_menu.add_command(label="Zamknięcie", command=self.apply_closing)
+        morphology_menu.add_separator()
+        morphology_menu.add_command(label="Szkieletyzacja", command=self.apply_skeletonization)
         
         # PLUGINS MENU
         plugins_menu = Menu(menubar, tearoff=0)
@@ -607,7 +610,49 @@ class MainWindow:
         """Detekcja krawędzi Canny"""
         dialog = CannyDialog(self.root, self.current_image, self.app_manager)
         dialog.on_result_callback = lambda img: self._show_result(img, "Canny")
-    
+
+    # ============ MORPHOLOGY OPERATIONS - LAB 3 ============
+
+    @_require_grayscale
+    def apply_erosion(self):
+        try:
+            dialog = MorphologyDialog(self.root, self.current_image, self.app_manager, "Erozja")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Erozja")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_dilation(self):
+        try:
+            dialog = MorphologyDialog(self.root, self.current_image, self.app_manager, "Dylacja")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Dylacja")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_opening(self):
+        try:
+            dialog = MorphologyDialog(self.root, self.current_image, self.app_manager, "Otwarcie")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Otwarcie")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_closing(self):
+        try:
+            dialog = MorphologyDialog(self.root, self.current_image, self.app_manager, "Zamknięcie")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Zamknięcie")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    @_require_grayscale
+    def apply_skeletonization(self):
+        try:
+            dialog = SkeletonizationDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Szkieletyzacja")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+        
     # ============ WINDOW MANAGEMENT ============
     
     def cascade_windows(self):
