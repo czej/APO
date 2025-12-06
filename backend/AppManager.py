@@ -3,6 +3,7 @@ from backend.Histogram import HistogramManager
 from backend.LogicalOperations import LogicalOperations 
 from backend.MaskOperations import MaskOperations
 from backend.ArithmeticOperations import ArithmeticOperations
+from backend.ConvolutionOperations import ConvolutionOperations
 
 class AppManager:
     @staticmethod
@@ -104,3 +105,60 @@ class AppManager:
     def apply_divide_scalar(img, scalar):
         """Dzielenie obrazu przez liczbę"""
         return ArithmeticOperations.divide_scalar(img, scalar)
+
+    # === CONVOLUTION OPERATIONS (LAB 2 - ZADANIE 3) ===
+    
+    @staticmethod
+    def apply_smoothing(img, mask_name, border_type="BORDER_REFLECT", border_value=0):
+        """Wygładzanie liniowe"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_smoothing(img, mask_name, border_type, border_value)
+    
+    @staticmethod
+    def apply_sharpening(img, mask_name, border_type="BORDER_REFLECT", border_value=0):
+        """Wyostrzanie (Laplacjan)"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_sharpening(img, mask_name, border_type, border_value)
+    
+    @staticmethod
+    def apply_prewitt(img, direction, border_type="BORDER_REFLECT", border_value=0):
+        """Detekcja krawędzi Prewitt"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_prewitt(img, direction, border_type, border_value)
+    
+    @staticmethod
+    def apply_sobel(img, border_type="BORDER_REFLECT", border_value=0):
+        """Detekcja krawędzi Sobel"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_sobel(img, border_type, border_value)
+    
+    @staticmethod
+    def get_smoothing_masks():
+        """Lista masek wygładzających"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.get_smoothing_mask_names()
+    
+    @staticmethod
+    def apply_custom_mask(img, mask, border_type="BORDER_REFLECT", border_value=0):
+        """Własna maska użytkownika"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.apply_custom_mask(img, mask, border_type, border_value)
+    
+    @staticmethod
+    def get_laplacian_masks():
+        """Lista masek Laplacjana"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.get_laplacian_mask_names()
+    
+    @staticmethod
+    def get_prewitt_directions():
+        """Lista kierunków Prewitta"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.get_prewitt_directions()
+    
+    @staticmethod
+    def get_border_types():
+        """Lista typów brzegów"""
+        conv_ops = ConvolutionOperations()
+        return conv_ops.get_border_types()
+    

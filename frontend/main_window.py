@@ -6,6 +6,7 @@ import numpy as np
 from frontend.image_viewer import ImageViewer
 from frontend.histogram import HistogramViewer
 from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
+from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog
 from backend.AppManager import AppManager
 
 
@@ -103,18 +104,17 @@ class MainWindow:
         # Filters submenu
         filters_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Filtry", menu=filters_menu)
-        filters_menu.add_command(label="Wygładzanie...")
-        filters_menu.add_command(label="Wyostrzanie...")
-        filters_menu.add_command(label="Rozmycie Gaussa...")
+        filters_menu.add_command(label="Wygładzanie", command=self.apply_smoothing)
+        filters_menu.add_command(label="Własna maska 3x3", command=self.apply_custom_mask)
+        filters_menu.add_command(label="Wyostrzanie (Laplasjan)", command=self.apply_sharpening)
         filters_menu.add_command(label="Mediana...")
         
         # Edge detection submenu
         edge_menu = Menu(process_menu, tearoff=0)
         process_menu.add_cascade(label="Wykrywanie krawędzi", menu=edge_menu)
-        edge_menu.add_command(label="Sobel...")
-        edge_menu.add_command(label="Prewitt...")
-        edge_menu.add_command(label="Laplacjan...")
-        edge_menu.add_command(label="Canny...")
+        edge_menu.add_command(label="Sobel", command=self.apply_sobel)
+        edge_menu.add_command(label="Prewitt (kierunkowy)", command=self.apply_prewitt)
+        edge_menu.add_command(label="Canny...", command=self.apply_canny)
         
         # ANALYZE MENU - LAB 3 & 4
         analyze_menu = Menu(menubar, tearoff=0)
@@ -566,6 +566,41 @@ class MainWindow:
             self._update_status("Przekonwertowano na maskę 8-bit (0/255)")
         except ValueError as e:
             messagebox.showerror("Błąd konwersji", str(e))
+
+    @_require_grayscale
+    def apply_smoothing(self):
+        """Wygładzanie liniowe"""
+        dialog = SmoothingDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Wygładzanie")
+
+    @_require_grayscale
+    def apply_custom_mask(self):
+        """Własna maska 3x3"""
+        dialog = CustomMaskDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Własna maska")
+
+    @_require_grayscale
+    def apply_sharpening(self):
+        """Wyostrzanie (Laplacjan)"""
+        dialog = SharpeningDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Wyostrzanie")
+
+    @_require_grayscale
+    def apply_prewitt(self):
+        """Kierunkowa detekcja krawędzi Prewitta"""
+        dialog = PrewittDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Prewitt")
+
+    @_require_grayscale
+    def apply_sobel(self):
+        """Detekcja krawędzi Sobela"""
+        dialog = SobelDialog(self.root, self.current_image, self.app_manager)
+        dialog.on_result_callback = lambda img: self._show_result(img, "Sobel")
+
+    @_require_grayscale
+    def apply_canny(self):
+        """Detekcja krawędzi Canny (placeholder dla zadania 5)"""
+        messagebox.showinfo("W przygotowaniu", "Operator Canny zostanie zaimplementowany w zadaniu 5")
     
     # ============ WINDOW MANAGEMENT ============
     
