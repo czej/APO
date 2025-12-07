@@ -228,6 +228,10 @@ class StretchHistogramDialog:
         self.ax_before.legend(fontsize=8)
         self.ax_before.grid(True, alpha=0.3)
         
+        # Zapamiętaj skalę Y z histogramu PRZED
+        y_max_before = histogram_before.max() * 1.1 if histogram_before.max() > 0 else 10000
+        self.ax_before.set_ylim(0, y_max_before)
+        
         self.canvas_before.draw()
         
         # Histogram PO (jeśli parametry są poprawne)
@@ -252,6 +256,13 @@ class StretchHistogramDialog:
                 self.ax_after.set_xlabel("Wartość piksela")
                 self.ax_after.set_ylabel("Częstość")
                 self.ax_after.set_xlim(0, 255)
+                
+                # Użyj TEJ SAMEJ skali Y co histogram PRZED
+                self.ax_after.set_ylim(0, y_max_before)
+                
+                # Napraw formatowanie osi Y
+                self.ax_after.ticklabel_format(style='plain', axis='y')
+                
                 self.ax_after.legend(fontsize=8)
                 self.ax_after.grid(True, alpha=0.3)
                 
