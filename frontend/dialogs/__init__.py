@@ -10,6 +10,7 @@ from .scalar_operation_dialog import ScalarOperationDialog
 from .convolution_dialog import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from .morphology_dialog import MorphologyDialog, SkeletonizationDialog
 from .segmentation_dialog import DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
+from .histogram_dialog import StretchHistogramDialog
 
 __all__ = [
     'ThresholdDialog',

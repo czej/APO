@@ -8,6 +8,7 @@ from frontend.histogram import HistogramViewer
 from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, BinaryOperationDialog, ScalarOperationDialog
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
+from frontend.dialogs import StretchHistogramDialog
 from backend.AppManager import AppManager
 
 
@@ -83,6 +84,7 @@ class MainWindow:
         
         # Histogram operations
         process_menu.add_command(label="Rozciągnij histogram", command=self.apply_stretch_histogram)
+        process_menu.add_command(label="Rozciągnij histogram (zakres)", command=self.apply_stretch_range)
         process_menu.add_command(label="Wyrównaj histogram", command=self.apply_equalize_histogram)
         
         # PROCESS MENU - LAB 2
@@ -615,6 +617,17 @@ class MainWindow:
         """Detekcja krawędzi Canny"""
         dialog = CannyDialog(self.root, self.current_image, self.app_manager)
         dialog.on_result_callback = lambda img: self._show_result(img, "Canny")
+
+    # ============ ROZCIAGANIE HISTOGRAMU - LAB 3 Zadanie 1 ============
+
+    @_require_grayscale
+    def apply_stretch_range(self):
+        """Rozciąganie histogramu w zadanym zakresie"""
+        try:
+            dialog = StretchHistogramDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Rozciąganie histogramu")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
 
     # ============ SEGMENTATION OPERATIONS - LAB 3 Zadanie 2 ============
 
