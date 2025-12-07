@@ -298,3 +298,82 @@ class MorphologyOperations:
             'ellipse': 'Elipsa'
         }
         return names.get(shape_key, 'Prostokąt')
+    
+    # @staticmethod
+    # def skeletonization(image):
+    #     """Szkieletyzacja - algorytm z wykładu"""
+    #     MorphologyOperations.validate_binary_image(image)
+        
+    #     img_normalized = image.copy()
+    #     if img_normalized.max() == 1:
+    #         img_normalized = img_normalized * 255
+        
+    #     _, binary = cv2.threshold(img_normalized, 127, 1, cv2.THRESH_BINARY)
+        
+    #     # 8 elementów strukturalnych (0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°)
+    #     se_0 = np.array([[0, 0, 0], [0, 1, 0], [1, 1, 1]], dtype=np.uint8)
+    #     se_90 = np.array([[0, 0, 1], [0, 1, 1], [0, 0, 1]], dtype=np.uint8)
+    #     se_180 = np.array([[1, 1, 1], [0, 1, 0], [0, 0, 0]], dtype=np.uint8)
+    #     se_270 = np.array([[1, 0, 0], [1, 1, 0], [1, 0, 0]], dtype=np.uint8)
+    #     se_45 = np.array([[0, 0, 0], [1, 1, 0], [1, 1, 0]], dtype=np.uint8)
+    #     se_135 = np.array([[0, 1, 1], [0, 1, 1], [0, 0, 0]], dtype=np.uint8)
+    #     se_225 = np.array([[0, 1, 1], [0, 1, 0], [0, 0, 0]], dtype=np.uint8)
+    #     se_315 = np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=np.uint8)
+        
+    #     structuring_elements = [se_0, se_45, se_90, se_135, se_180, se_225, se_270, se_315]
+        
+    #     remain = binary.copy().astype(np.float32)
+    #     skel = np.zeros_like(remain)
+        
+    #     while True:
+    #         false = remain.copy()
+            
+    #         for se in structuring_elements:
+    #             eroded = cv2.erode(remain, se, iterations=1)
+    #             temp = remain - eroded
+    #             skel = np.maximum(skel, temp)
+    #             remain = eroded.copy()
+            
+    #         if np.array_equal(remain, false) or np.sum(remain) < 1:
+    #             break
+        
+    #     skel = np.maximum(skel, remain)
+    #     skel = (skel * 255).astype(np.uint8)
+        
+    #     if image.max() == 1:
+    #         skel = (skel / 255).astype(np.uint8)
+        
+    #     return skel
+
+    @staticmethod
+    def skeletonization(image):
+        """Szkieletyzacja - redukcja obiektu binarnego do szkieletu"""
+        MorphologyOperations.validate_binary_image(image)
+        
+        img_normalized = image.copy()
+        if img_normalized.max() == 1:
+            img_normalized = img_normalized * 255
+        
+        _, binary = cv2.threshold(img_normalized, 127, 1, cv2.THRESH_BINARY)
+        
+        img = binary.astype(np.uint8)
+        skel = np.zeros_like(img)
+        
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        
+        while True:
+            eroded = cv2.erode(img, kernel)
+            temp = cv2.dilate(eroded, kernel)
+            temp = cv2.subtract(img, temp)
+            skel = cv2.bitwise_or(skel, temp)
+            img = eroded.copy()
+            
+            if cv2.countNonZero(img) == 0:
+                break
+        
+        skel = (skel * 255).astype(np.uint8)
+        
+        if image.max() == 1:
+            skel = (skel / 255).astype(np.uint8)
+        
+        return skel

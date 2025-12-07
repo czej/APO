@@ -200,7 +200,7 @@ class SkeletonizationDialog:
     def __init__(self, parent, image, app_manager):
         self.window = tk.Toplevel(parent)
         self.window.title("Szkieletyzacja")
-        self.window.geometry("400x250")
+        self.window.geometry("400x450")
         self.window.resizable(False, False)
         
         self.image = image

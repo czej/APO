@@ -44,7 +44,7 @@ class MainWindow:
         # IMAGE MENU
         image_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Obraz", menu=image_menu)
-        image_menu.add_command(label="Duplikuj...", command=self.duplicate_image, accelerator="Ctrl+D")
+        image_menu.add_command(label="Duplikuj", command=self.duplicate_image, accelerator="Ctrl+D")
         
         # Submenu: Type
         type_menu = Menu(image_menu, tearoff=0)

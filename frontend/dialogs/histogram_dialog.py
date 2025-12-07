@@ -27,7 +27,7 @@ class StretchHistogramDialog:
         # Tworzenie okna dialogowego
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Rozciąganie histogramu")
-        self.dialog.geometry("900x700")
+        self.dialog.geometry("900x850")
         self.dialog.transient(parent)
         
         # Zmienne - domyślnie znajdź min/max w obrazie
