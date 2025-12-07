@@ -45,7 +45,9 @@ class HistogramOperations:
         # y = (x - p1) * (q2 - q1) / (p2 - p1) + q1
         result = (result - p1) * (q2 - q1) / (p2 - p1) + q1
         
-        # Obetnij do zakresu [0, 255] i konwertuj do uint8
+        # Obetnij do zakresu [q1, q2] (piksele poza [p1,p2] będą na krańcach [q1,q2])
+        # Potem obetnij do [0, 255] i konwertuj do uint8
+        result = np.clip(result, q1, q2)
         result = np.clip(result, 0, 255).astype(np.uint8)
         
         return result
