@@ -113,7 +113,22 @@ class SmoothingDialog(ConvolutionDialog):
     """Dialog dla wygładzania liniowego"""
     
     def __init__(self, parent, image, app_manager):
-        super().__init__(parent, "Wygładzanie liniowe", image, app_manager)
+        # Nadpisujemy __init__ żeby mieć większe okno
+        self.parent = parent
+        self.image = image
+        self.app_manager = app_manager
+        self.result = None
+        self.on_result_callback = None
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("Wygładzanie liniowe")
+        self.window.geometry("450x550")
+        self.window.resizable(False, False)
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        self._create_widgets()
     
     def _create_widgets(self):
         main_frame = ttk.Frame(self.window, padding="10")
@@ -133,12 +148,87 @@ class SmoothingDialog(ConvolutionDialog):
             width=30
         )
         mask_combo.grid(row=1, column=0, columnspan=2, sticky='ew', padx=10, pady=5)
+        mask_combo.bind('<<ComboboxSelected>>', self._update_mask_display)
+        
+        # Ramka na wyświetlenie maski
+        mask_display_frame = ttk.LabelFrame(main_frame, text="Podgląd maski 3x3:", padding="10")
+        mask_display_frame.grid(row=2, column=0, columnspan=2, pady=10, padx=10, sticky='ew')
+        
+        # Grid do wyświetlenia maski
+        self.mask_labels = []
+        for i in range(3):
+            row_labels = []
+            for j in range(3):
+                label = ttk.Label(
+                    mask_display_frame,
+                    text="0",
+                    font=('Courier', 11, 'bold'),
+                    width=6,
+                    anchor='center',
+                    relief='solid',
+                    borderwidth=1
+                )
+                label.grid(row=i, column=j, padx=2, pady=2)
+                row_labels.append(label)
+            self.mask_labels.append(row_labels)
+        
+        # Współczynnik
+        self.divisor_label = ttk.Label(
+            mask_display_frame,
+            text="/ 1",
+            font=('Arial', 11, 'bold'),
+            foreground='#0066cc'
+        )
+        self.divisor_label.grid(row=1, column=3, padx=10)
+        
+        # Wyświetl początkową maskę
+        self._update_mask_display()
         
         # Kontrolki brzegu
-        next_row = self._create_border_controls(main_frame, start_row=2)
+        next_row = self._create_border_controls(main_frame, start_row=3)
         
         # Przyciski
         self._create_buttons(main_frame, next_row)
+    
+    def _update_mask_display(self, event=None):
+        """Aktualizuje wyświetlanie wartości maski"""
+        from backend.ConvolutionOperations import ConvolutionOperations
+        conv_ops = ConvolutionOperations()
+        
+        mask_name = self.mask_var.get()
+        mask = conv_ops.SMOOTHING_MASKS.get(mask_name)
+        
+        if mask is not None:
+            # Odtwórz oryginalne wartości całkowite
+            # Suma znormalizowanej maski powinna być bliska 1.0
+            sum_normalized = np.sum(mask)
+            
+            if abs(sum_normalized - 1.0) < 0.01:  # Maska jest znormalizowana
+                # Znajdź współczynnik - sprawdź możliwe wartości
+                # Dla "Uśrednienie": suma oryginalna = 5
+                # Dla "Filtr Gaussa": suma oryginalna = 17
+                
+                # Przemnóż przez różne współczynniki i sprawdź który daje całkowite
+                for divisor in [5, 17, 9, 16, 25]:  # Typowe współczynniki
+                    int_mask = mask * divisor
+                    # Sprawdź czy wszystkie wartości są bliskie całkowitym
+                    if np.allclose(int_mask, np.round(int_mask), atol=0.01):
+                        # Znaleziono właściwy współczynnik
+                        for i in range(3):
+                            for j in range(3):
+                                value = int(round(int_mask[i, j]))
+                                self.mask_labels[i][j].config(text=f"{value}")
+                        
+                        self.divisor_label.config(text=f"/ {divisor}")
+                        return
+            
+            # Fallback - pokaż wartości rzeczywiste
+            for i in range(3):
+                for j in range(3):
+                    value = mask[i, j]
+                    self.mask_labels[i][j].config(text=f"{value:.3f}")
+            
+            self.divisor_label.config(text="")
     
     def _apply_and_show(self):
         try:
@@ -162,7 +252,22 @@ class SharpeningDialog(ConvolutionDialog):
     """Dialog dla wyostrzania (Laplacjan)"""
     
     def __init__(self, parent, image, app_manager):
-        super().__init__(parent, "Wyostrzanie (Laplacjan)", image, app_manager)
+        # Nadpisujemy __init__ żeby mieć większe okno
+        self.parent = parent
+        self.image = image
+        self.app_manager = app_manager
+        self.result = None
+        self.on_result_callback = None
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("Wyostrzanie (Laplacjan)")
+        self.window.geometry("450x550")
+        self.window.resizable(False, False)
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        self._create_widgets()
     
     def _create_widgets(self):
         main_frame = ttk.Frame(self.window, padding="10")
@@ -182,12 +287,52 @@ class SharpeningDialog(ConvolutionDialog):
             width=30
         )
         mask_combo.grid(row=1, column=0, columnspan=2, sticky='ew', padx=10, pady=5)
+        mask_combo.bind('<<ComboboxSelected>>', self._update_mask_display)
+        
+        # Ramka na wyświetlenie maski
+        mask_display_frame = ttk.LabelFrame(main_frame, text="Podgląd maski 3x3:", padding="10")
+        mask_display_frame.grid(row=2, column=0, columnspan=2, pady=10, padx=10, sticky='ew')
+        
+        # Grid do wyświetlenia maski
+        self.mask_labels = []
+        for i in range(3):
+            row_labels = []
+            for j in range(3):
+                label = ttk.Label(
+                    mask_display_frame,
+                    text="0",
+                    font=('Courier', 11, 'bold'),
+                    width=6,
+                    anchor='center',
+                    relief='solid',
+                    borderwidth=1
+                )
+                label.grid(row=i, column=j, padx=2, pady=2)
+                row_labels.append(label)
+            self.mask_labels.append(row_labels)
+        
+        # Wyświetl początkową maskę
+        self._update_mask_display()
         
         # Kontrolki brzegu
-        next_row = self._create_border_controls(main_frame, start_row=2)
+        next_row = self._create_border_controls(main_frame, start_row=3)
         
         # Przyciski
         self._create_buttons(main_frame, next_row)
+    
+    def _update_mask_display(self, event=None):
+        """Aktualizuje wyświetlanie wartości maski"""
+        from backend.ConvolutionOperations import ConvolutionOperations
+        conv_ops = ConvolutionOperations()
+        
+        mask_name = self.mask_var.get()
+        mask = conv_ops.LAPLACIAN_MASKS.get(mask_name)
+        
+        if mask is not None:
+            for i in range(3):
+                for j in range(3):
+                    value = int(mask[i, j])
+                    self.mask_labels[i][j].config(text=f"{value}")
     
     def _apply_and_show(self):
         try:
