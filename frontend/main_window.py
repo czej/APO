@@ -9,7 +9,7 @@ from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, Bi
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from frontend.dialogs import StretchHistogramDialog
-from frontend.dialogs import FeatureAnalysisDialog, MultiObjectFeatureDialog
+from frontend.dialogs import ObjectAnalysisDialog
 from backend.AppManager import AppManager
 
 
@@ -35,8 +35,8 @@ class MainWindow:
         # FILE MENU
         file_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Plik", menu=file_menu)
-        file_menu.add_command(label="Otwórz...", command=self.load_image, accelerator="Ctrl+O")
-        file_menu.add_command(label="Zapisz", command=self.save_image, accelerator="Ctrl+S")
+        file_menu.add_command(label="Otwórz...", command=self.load_image)
+        file_menu.add_command(label="Zapisz", command=self.save_image)
         file_menu.add_command(label="Zapisz jako...", command=self.save_image_as)
         file_menu.add_separator()
         file_menu.add_command(label="Zamknij", command=self.close_current_image)
@@ -45,7 +45,7 @@ class MainWindow:
         # IMAGE MENU
         image_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Obraz", menu=image_menu)
-        image_menu.add_command(label="Duplikuj", command=self.duplicate_image, accelerator="Ctrl+D")
+        image_menu.add_command(label="Duplikuj", command=self.duplicate_image)
         
         # Submenu: Type
         type_menu = Menu(image_menu, tearoff=0)
@@ -61,7 +61,7 @@ class MainWindow:
         menubar.add_cascade(label="Przetwarzanie", menu=process_menu)
         
         # Point Operations
-        process_menu.add_command(label="Odwróć (Negacja)", command=self.apply_negate, accelerator="Ctrl+Shift+I")
+        process_menu.add_command(label="Odwróć (Negacja)", command=self.apply_negate)
         process_menu.add_command(label="Posteryzacja...", command=self.apply_posterize)
         process_menu.add_separator()
         
@@ -125,8 +125,8 @@ class MainWindow:
         menubar.add_cascade(label="Analiza", menu=analyze_menu)
         analyze_menu.add_command(label="Histogram", command=self.show_histogram)
         analyze_menu.add_separator()
-        analyze_menu.add_command(label="Analiza cech obiektu", command=self.analyze_object_features)
-        analyze_menu.add_command(label="Analiza wielu obiektów", command=self.analyze_multiple_objects)
+        analyze_menu.add_command(label="Analiza wielu obiektów", 
+                                command=self.analyze_multiple_objects)
         
         # Morphology submenu
         # Morphology submenu - LAB 3
@@ -159,13 +159,6 @@ class MainWindow:
         help_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Pomoc", menu=help_menu)
         help_menu.add_command(label="O programie...", command=self.show_about)
-        
-        # Keyboard shortcuts - bez zmian
-        self.root.bind("<Control-o>", lambda e: self.load_image())
-        self.root.bind("<Control-s>", lambda e: self.save_image())
-        self.root.bind("<Control-d>", lambda e: self.duplicate_image())
-        self.root.bind("<Control-h>", lambda e: self.show_histogram())
-        self.root.bind("<Control-Shift-I>", lambda e: self.apply_negate())
         
     def _create_main_panel(self):
         """Tworzy główny panel aplikacji"""
@@ -698,30 +691,8 @@ class MainWindow:
 
     # ============ FEATURE ANALYSIS - LAB 4 Zadanie 1 ============
 
-    def analyze_object_features(self):
-        """Analiza cech pojedynczego obiektu binarnego"""
-        if self.current_image is None:
-            messagebox.showinfo("Info", "Nie załadowano obrazu")
-            return
-        
-        # Sprawdź czy obraz jest binarny
-        unique_vals = np.unique(self.current_image)
-        if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
-            response = messagebox.askyesno(
-                "Ostrzeżenie", 
-                "Obraz nie jest binarny. Czy chcesz najpierw zastosować progowanie Otsu?"
-            )
-            if response:
-                self.apply_otsu_threshold()
-            return
-        
-        try:
-            dialog = FeatureAnalysisDialog(self.root, self.current_image, self.app_manager)
-        except ValueError as e:
-            messagebox.showerror("Błąd", str(e))
-
     def analyze_multiple_objects(self):
-        """Analiza cech wielu obiektów na obrazie binarnym"""
+        """Analiza wielu obiektów na obrazie binarnym"""
         if self.current_image is None:
             messagebox.showinfo("Info", "Nie załadowano obrazu")
             return
@@ -731,17 +702,18 @@ class MainWindow:
         if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
             response = messagebox.askyesno(
                 "Ostrzeżenie", 
-                "Obraz nie jest binarny. Czy chcesz najpierw zastosować progowanie Otsu?"
+                "Obraz nie jest binarny. Zastosować progowanie Otsu?"
             )
             if response:
                 self.apply_otsu_threshold()
             return
         
         try:
-            dialog = MultiObjectFeatureDialog(self.root, self.current_image, self.app_manager)
+            dialog = ObjectAnalysisDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Preview z konturami")
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
-        
+            
     # ============ WINDOW MANAGEMENT ============
     
     def cascade_windows(self):

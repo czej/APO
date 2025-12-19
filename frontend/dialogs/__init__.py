@@ -11,7 +11,7 @@ from .convolution_dialog import SmoothingDialog, SharpeningDialog, PrewittDialog
 from .morphology_dialog import MorphologyDialog, SkeletonizationDialog
 from .segmentation_dialog import DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from .histogram_dialog import StretchHistogramDialog
-from .feature_analysis_dialog import FeatureAnalysisDialog, MultiObjectFeatureDialog
+from .object_analysis_dialog import ObjectAnalysisDialog
 
 __all__ = [
     'ThresholdDialog',
