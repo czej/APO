@@ -60,26 +60,30 @@ class ObjectAnalysisDialog:
         table_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview
-        columns = ('ID', 'Pole', 'Obwód', 'Centroid', 'Solidity', 'M0', 'M1_x', 'M1_y')
+        columns = ('ID', 'Pole', 'Obwód', 'AspectRatio', 'Extent', 'Solidity', 'EquivDiam', 'M1', 'M2', 'M3')
         self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=10)
         
         self.tree.heading('ID', text='ID')
         self.tree.heading('Pole', text='Pole')
         self.tree.heading('Obwód', text='Obwód')
-        self.tree.heading('Centroid', text='Centroid (x,y)')
+        self.tree.heading('AspectRatio', text='AspectRatio')
+        self.tree.heading('Extent', text='Extent')
         self.tree.heading('Solidity', text='Solidity')
-        self.tree.heading('M0', text='M0 (m00)')
-        self.tree.heading('M1_x', text='M1_x (m10)')
-        self.tree.heading('M1_y', text='M1_y (m01)')
+        self.tree.heading('EquivDiam', text='EquivDiam')
+        self.tree.heading('M1', text='M1')
+        self.tree.heading('M2', text='M2')
+        self.tree.heading('M3', text='M3')
         
         self.tree.column('ID', width=40)
         self.tree.column('Pole', width=80)
         self.tree.column('Obwód', width=80)
-        self.tree.column('Centroid', width=100)
-        self.tree.column('Solidity', width=80)
-        self.tree.column('M0', width=100)
-        self.tree.column('M1_x', width=100)
-        self.tree.column('M1_y', width=100)
+        self.tree.column('AspectRatio', width=90)
+        self.tree.column('Extent', width=70)
+        self.tree.column('Solidity', width=70)
+        self.tree.column('EquivDiam', width=80)
+        self.tree.column('M1', width=90)
+        self.tree.column('M2', width=90)
+        self.tree.column('M3', width=90)
         
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
@@ -167,11 +171,13 @@ class ObjectAnalysisDialog:
                 obj['id'],
                 f"{obj['area']:.1f}",
                 f"{obj['perimeter']:.1f}",
-                f"({obj['centroid'][0]}, {obj['centroid'][1]})",
+                f"{obj['aspect_ratio']:.3f}",
+                f"{obj['extent']:.3f}",
                 f"{obj['solidity']:.3f}",
-                f"{obj['m00']:.1f}",
-                f"{obj['m10']:.1f}",
-                f"{obj['m01']:.1f}"
+                f"{obj['equivalent_diameter']:.1f}",
+                f"{obj['M1']:.4f}",
+                f"{obj['M2']:.4f}",
+                f"{obj['M3']:.4f}"
             ))
     
     def _save_csv(self):

@@ -40,6 +40,7 @@ class ObjectAnalysis:
         preview = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
         
         objects_data = []
+        object_id = 1  # Licznik ID
         
         for idx, cnt in enumerate(contours):
             # Pomiń bardzo małe obiekty (szum)
@@ -47,57 +48,84 @@ class ObjectAnalysis:
             if area < 10:
                 continue
             
-            # 1. Momenty (M1, M2, M3)
+            # Momenty
             M = cv2.moments(cnt)
             
-            # 2. Pole i obwód
+            # Pole i obwód
             perimeter = cv2.arcLength(cnt, closed=True)
-            
-            # 3. Solidity
-            hull = cv2.convexHull(cnt)
-            hull_area = cv2.contourArea(hull)
-            solidity = float(area) / hull_area if hull_area > 0 else 0
-            
-            # 4. Equivalent Diameter
-            equivalent_diameter = np.sqrt(4 * area / np.pi) if area > 0 else 0
             
             # Centroid
             cx = int(M['m10'] / M['m00']) if M['m00'] != 0 else 0
             cy = int(M['m01'] / M['m00']) if M['m00'] != 0 else 0
             
+            # Bounding box dla aspectRatio i extent
+            x, y, w, h = cv2.boundingRect(cnt)
+            aspect_ratio = float(w) / h if h != 0 else 0
+            rect_area = w * h
+            extent = float(area) / rect_area if rect_area != 0 else 0
+            
+            # Solidity
+            hull = cv2.convexHull(cnt)
+            hull_area = cv2.contourArea(hull)
+            solidity = float(area) / hull_area if hull_area > 0 else 0
+            
+            # Equivalent Diameter
+            equivalent_diameter = np.sqrt(4 * area / np.pi) if area > 0 else 0
+            
+            # Momenty znormalizowane dla M1, M2, M3
+            mu20 = M['mu20']
+            mu02 = M['mu02']
+            mu11 = M['mu11']
+            mu30 = M['mu30']
+            mu12 = M['mu12']
+            mu21 = M['mu21']
+            mu03 = M['mu03']
+            
+            # M1, M2, M3 wg wzorów z wykładu
+            M1 = M['nu20'] + M['nu02']
+            M2 = (M['nu20'] - M['nu02'])**2 + 4 * M['nu11']**2
+            M3 = (M['nu30'] - 3*M['nu12'])**2 + (3*M['nu21'] - M['nu03'])**2
+            
+            # Kolor dla tego obiektu
+            color = ObjectAnalysis._get_color(object_id - 1)
+            
             # Zapisz dane
             obj_data = {
-                'id': idx + 1,
+                'id': object_id,
+                'color': color,
                 'area': area,
                 'perimeter': perimeter,
                 'centroid': (cx, cy),
+                'aspect_ratio': aspect_ratio,
+                'extent': extent,
                 'solidity': solidity,
                 'equivalent_diameter': equivalent_diameter,
-                # Momenty - tylko M1, M2, M3
-                'm00': M['m00'],  # M0
-                'm10': M['m10'],  # M1
-                'm01': M['m01'],  # M1
-                'm20': M['m20'],  # M2
-                'm11': M['m11'],  # M2
-                'm02': M['m02'],  # M2
-                'm30': M['m30'],  # M3
-                'm21': M['m21'],  # M3
-                'm12': M['m12'],  # M3
-                'm03': M['m03'],  # M3
+                # Momenty Hu
+                'M1': M1,
+                'M2': M2,
+                'M3': M3,
+                # Momenty surowe (dla zapisu)
+                'm00': M['m00'],
+                'm10': M['m10'],
+                'm01': M['m01'],
+                'm20': M['m20'],
+                'm11': M['m11'],
+                'm02': M['m02'],
             }
             
             objects_data.append(obj_data)
             
-            # Rysuj kontur (każdy innym kolorem)
-            color = ObjectAnalysis._get_color(idx)
+            # Rysuj kontur
             cv2.drawContours(preview, [cnt], 0, color, 2)
             
             # Rysuj centroid
             cv2.circle(preview, (cx, cy), 3, (0, 0, 255), -1)
             
-            # Podpisz numer
-            cv2.putText(preview, str(idx + 1), (cx + 5, cy - 5),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            # Numer w kolorze ramki
+            cv2.putText(preview, str(object_id), (cx + 5, cy - 5),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            
+            object_id += 1
         
         return objects_data, preview
     
@@ -114,13 +142,7 @@ class ObjectAnalysis:
     
     @staticmethod
     def save_to_csv(objects_data: List[Dict], filename: str):
-        """
-        Zapisuje dane do pliku CSV.
-        
-        Args:
-            objects_data: Lista słowników z danymi
-            filename: Nazwa pliku wyjściowego
-        """
+        """Zapisuje dane do pliku CSV"""
         if not objects_data:
             return
         
@@ -128,10 +150,9 @@ class ObjectAnalysis:
             # Nagłówek
             headers = [
                 'ID', 'Pole', 'Obwód', 'Centroid_X', 'Centroid_Y',
-                'Solidity', 'EquivalentDiameter',
-                'm00', 'm10', 'm01',  # M0, M1
-                'm20', 'm11', 'm02',  # M2
-                'm30', 'm21', 'm12', 'm03'  # M3
+                'AspectRatio', 'Extent', 'Solidity', 'EquivalentDiameter',
+                'M1', 'M2', 'M3',
+                'm00', 'm10', 'm01', 'm20', 'm11', 'm02'
             ]
             f.write('\t'.join(headers) + '\n')
             
@@ -143,17 +164,18 @@ class ObjectAnalysis:
                     f"{obj['perimeter']:.2f}",
                     str(obj['centroid'][0]),
                     str(obj['centroid'][1]),
+                    f"{obj['aspect_ratio']:.4f}",
+                    f"{obj['extent']:.4f}",
                     f"{obj['solidity']:.4f}",
                     f"{obj['equivalent_diameter']:.2f}",
+                    f"{obj['M1']:.6f}",
+                    f"{obj['M2']:.6f}",
+                    f"{obj['M3']:.6f}",
                     f"{obj['m00']:.2f}",
                     f"{obj['m10']:.2f}",
                     f"{obj['m01']:.2f}",
                     f"{obj['m20']:.2f}",
                     f"{obj['m11']:.2f}",
                     f"{obj['m02']:.2f}",
-                    f"{obj['m30']:.2f}",
-                    f"{obj['m21']:.2f}",
-                    f"{obj['m12']:.2f}",
-                    f"{obj['m03']:.2f}",
                 ]
                 f.write('\t'.join(row) + '\n')

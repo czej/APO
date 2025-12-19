@@ -692,25 +692,22 @@ class MainWindow:
     # ============ FEATURE ANALYSIS - LAB 4 Zadanie 1 ============
 
     def analyze_multiple_objects(self):
-        """Analiza wielu obiektów na obrazie binarnym"""
+        """Analiza wielu obiektów"""
         if self.current_image is None:
             messagebox.showinfo("Info", "Nie załadowano obrazu")
             return
         
-        # Sprawdź czy obraz jest binarny
         unique_vals = np.unique(self.current_image)
         if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
-            response = messagebox.askyesno(
-                "Ostrzeżenie", 
-                "Obraz nie jest binarny. Zastosować progowanie Otsu?"
-            )
+            response = messagebox.askyesno("Ostrzeżenie", 
+                "Obraz nie jest binarny. Zastosować progowanie Otsu?")
             if response:
                 self.apply_otsu_threshold()
             return
         
         try:
             dialog = ObjectAnalysisDialog(self.root, self.current_image, self.app_manager)
-            dialog.on_result_callback = lambda img: self._show_result(img, "Preview z konturami")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Preview")
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
             
