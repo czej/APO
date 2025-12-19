@@ -5,6 +5,7 @@ from backend.MaskOperations import MaskOperations
 from backend.ArithmeticOperations import ArithmeticOperations
 from backend.ConvolutionOperations import ConvolutionOperations
 from backend.MorphologyOperations import MorphologyOperations
+from backend.SegmentationOperations import SegmentationOperations
 
 class AppManager:
     @staticmethod

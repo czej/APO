@@ -9,6 +9,8 @@ from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, Bi
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from frontend.dialogs import StretchHistogramDialog
+from frontend.dialogs import ObjectAnalysisDialog
+from frontend.dialogs import InpaintingDialog
 from backend.AppManager import AppManager
 
 
@@ -34,8 +36,8 @@ class MainWindow:
         # FILE MENU
         file_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Plik", menu=file_menu)
-        file_menu.add_command(label="Otwórz...", command=self.load_image, accelerator="Ctrl+O")
-        file_menu.add_command(label="Zapisz", command=self.save_image, accelerator="Ctrl+S")
+        file_menu.add_command(label="Otwórz...", command=self.load_image)
+        file_menu.add_command(label="Zapisz", command=self.save_image)
         file_menu.add_command(label="Zapisz jako...", command=self.save_image_as)
         file_menu.add_separator()
         file_menu.add_command(label="Zamknij", command=self.close_current_image)
@@ -44,7 +46,7 @@ class MainWindow:
         # IMAGE MENU
         image_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Obraz", menu=image_menu)
-        image_menu.add_command(label="Duplikuj", command=self.duplicate_image, accelerator="Ctrl+D")
+        image_menu.add_command(label="Duplikuj", command=self.duplicate_image)
         
         # Submenu: Type
         type_menu = Menu(image_menu, tearoff=0)
@@ -55,17 +57,12 @@ class MainWindow:
         type_menu.add_command(label="Maska binarna (0/1)", command=self.convert_to_binary_mask)
         type_menu.add_command(label="Maska 8-bit (0/255)", command=self.convert_to_8bit_mask)
         
-        # Submenu: Adjust
-        adjust_menu = Menu(image_menu, tearoff=0)
-        image_menu.add_cascade(label="Dostosuj", menu=adjust_menu)
-        adjust_menu.add_command(label="Jasność/Kontrast...")
-        
         # PROCESS MENU - LAB 1
         process_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Przetwarzanie", menu=process_menu)
         
         # Point Operations
-        process_menu.add_command(label="Odwróć (Negacja)", command=self.apply_negate, accelerator="Ctrl+Shift+I")
+        process_menu.add_command(label="Odwróć (Negacja)", command=self.apply_negate)
         process_menu.add_command(label="Posteryzacja...", command=self.apply_posterize)
         process_menu.add_separator()
         
@@ -127,10 +124,10 @@ class MainWindow:
         # ANALYZE MENU - LAB 3 & 4
         analyze_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Analiza", menu=analyze_menu)
-        analyze_menu.add_command(label="Histogram", command=self.show_histogram, accelerator="Ctrl+H")
+        analyze_menu.add_command(label="Histogram", command=self.show_histogram)
         analyze_menu.add_separator()
-        analyze_menu.add_command(label="Pomiar")
-        analyze_menu.add_command(label="Ustaw pomiary...")
+        analyze_menu.add_command(label="Analiza wielu obiektów", 
+                                command=self.analyze_multiple_objects)
         
         # Morphology submenu
         # Morphology submenu - LAB 3
@@ -146,9 +143,7 @@ class MainWindow:
         # PLUGINS MENU
         plugins_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Wtyczki", menu=plugins_menu)
-        plugins_menu.add_command(label="Transformata Hougha...")
-        plugins_menu.add_command(label="Inpainting...")
-        plugins_menu.add_command(label="Segmentacja Graph Cut...")
+        plugins_menu.add_command(label="Inpainting", command=self.apply_inpainting)
         
         # WINDOW MENU
         window_menu = Menu(menubar, tearoff=0)
@@ -163,13 +158,6 @@ class MainWindow:
         help_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Pomoc", menu=help_menu)
         help_menu.add_command(label="O programie...", command=self.show_about)
-        
-        # Keyboard shortcuts - bez zmian
-        self.root.bind("<Control-o>", lambda e: self.load_image())
-        self.root.bind("<Control-s>", lambda e: self.save_image())
-        self.root.bind("<Control-d>", lambda e: self.duplicate_image())
-        self.root.bind("<Control-h>", lambda e: self.show_histogram())
-        self.root.bind("<Control-Shift-I>", lambda e: self.apply_negate())
         
     def _create_main_panel(self):
         """Tworzy główny panel aplikacji"""
@@ -238,7 +226,7 @@ class MainWindow:
             return func(self, *args, **kwargs)
         return wrapper
     
-    def _require_multiple_images(min_count=2):  # DODAJ TEN DEKORATOR
+    def _require_multiple_images(min_count=2):
         """
         Dekorator sprawdzający czy jest wystarczająco dużo obrazów.
         
@@ -699,7 +687,40 @@ class MainWindow:
             dialog.on_result_callback = lambda img: self._show_result(img, "Szkieletyzacja")
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
+
+    # ============ FEATURE ANALYSIS - LAB 4 Zadanie 1 ============
+
+    def analyze_multiple_objects(self):
+        """Analiza wielu obiektów"""
+        if self.current_image is None:
+            messagebox.showinfo("Info", "Nie załadowano obrazu")
+            return
         
+        unique_vals = np.unique(self.current_image)
+        if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
+            response = messagebox.askyesno("Ostrzeżenie", 
+                "Obraz nie jest binarny. Zastosować progowanie Otsu?")
+            if response:
+                self.apply_otsu_threshold()
+            return
+        
+        try:
+            dialog = ObjectAnalysisDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Preview")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    # ============ INPAINTING - LAB 4 Zadanie 2 ============
+
+    @_require_image
+    def apply_inpainting(self):
+        """Inpainting - wypełnianie uszkodzonych obszarów"""
+        try:
+            dialog = InpaintingDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Inpainting")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+            
     # ============ WINDOW MANAGEMENT ============
     
     def cascade_windows(self):

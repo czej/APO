@@ -13,6 +13,8 @@ class MorphologyDialog:
         self.window.title(f"Morfologia - {operation_name}")
         self.window.geometry("400x450")
         self.window.resizable(False, False)
+        self.window.transient(parent)  # Dodane - okno zawsze na wierzchu
+        self.window.grab_set()  # Dodane - blokada okna rodzica
         
         self.image = image
         self.app_manager = app_manager
@@ -200,8 +202,10 @@ class SkeletonizationDialog:
     def __init__(self, parent, image, app_manager):
         self.window = tk.Toplevel(parent)
         self.window.title("Szkieletyzacja")
-        self.window.geometry("400x450")
+        self.window.geometry("400x350")
         self.window.resizable(False, False)
+        self.window.transient(parent)  # Dodane - okno zawsze na wierzchu
+        self.window.grab_set()  # Dodane - blokada okna rodzica
         
         self.image = image
         self.app_manager = app_manager
@@ -231,9 +235,6 @@ class SkeletonizationDialog:
         info_text = (
             "Szkieletyzacja redukuje obiekt binarny do linii środkowej "
             "(szkieletu) zachowując topologię obiektu.\n\n"
-            "Algorytm: Zgodny z wykładem\n"
-            "- Iteracyjne ścienianie z 8 kierunkami\n"
-            "- Elementy strukturalne: 0°, 90°, 180°, 270° + przekątne\n\n"
             "⚠️ WAŻNE:\n"
             "• Obraz musi być binarny (czarno-biały)\n"
             "• Obiekty BIAŁE (255) na CZARNYM tle (0)\n"
@@ -248,12 +249,6 @@ class SkeletonizationDialog:
         
         ttk.Button(
             button_frame,
-            text="Podgląd",
-            command=self._update_preview
-        ).pack(side=tk.LEFT, padx=(0, 5))
-        
-        ttk.Button(
-            button_frame,
             text="OK",
             command=self._on_ok
         ).pack(side=tk.LEFT, padx=5)
@@ -263,38 +258,15 @@ class SkeletonizationDialog:
             text="Anuluj",
             command=self.window.destroy
         ).pack(side=tk.LEFT, padx=5)
-        
-        # Status
-        self.status_label = ttk.Label(
-            main_frame,
-            text="Kliknij 'Podgląd' lub 'OK' aby wykonać szkieletyzację",
-            foreground="gray"
-        )
-        self.status_label.pack(pady=(10, 0))
-    
-    def _update_preview(self):
-        """Wykonuje szkieletyzację i wyświetla podgląd"""
-        try:
-            self.status_label.config(text="Wykonywanie szkieletyzacji...", foreground="blue")
-            self.window.update()
-            
-            self.result_image = self.app_manager.morphology_skeletonization(self.image)
-            
-            self.status_label.config(
-                text="Szkieletyzacja zakończona. Kliknij OK aby zastosować.",
-                foreground="green"
-            )
-            
-        except Exception as e:
-            self.status_label.config(text=f"Błąd: {str(e)}", foreground="red")
-            messagebox.showerror("Błąd", f"Błąd podczas szkieletyzacji: {str(e)}")
     
     def _on_ok(self):
         """Zatwierdza operację i przekazuje wynik"""
-        if self.result_image is None:
-            # Jeśli nie było podglądu, wykonaj operację
-            self._update_preview()
-        
-        if self.result_image is not None and self.on_result_callback:
-            self.on_result_callback(self.result_image)
-        self.window.destroy()
+        try:
+            # Wykonaj szkieletyzację
+            self.result_image = self.app_manager.morphology_skeletonization(self.image)
+            
+            if self.result_image is not None and self.on_result_callback:
+                self.on_result_callback(self.result_image)
+            self.window.destroy()
+        except Exception as e:
+            messagebox.showerror("Błąd", f"Błąd podczas szkieletyzacji: {str(e)}")
