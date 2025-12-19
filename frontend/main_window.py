@@ -10,6 +10,7 @@ from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, S
 from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from frontend.dialogs import StretchHistogramDialog
 from frontend.dialogs import ObjectAnalysisDialog
+from frontend.dialogs import InpaintingDialog
 from backend.AppManager import AppManager
 
 
@@ -142,9 +143,7 @@ class MainWindow:
         # PLUGINS MENU
         plugins_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Wtyczki", menu=plugins_menu)
-        plugins_menu.add_command(label="Transformata Hougha...")
-        plugins_menu.add_command(label="Inpainting...")
-        plugins_menu.add_command(label="Segmentacja Graph Cut...")
+        plugins_menu.add_command(label="Inpainting", command=self.apply_inpainting)
         
         # WINDOW MENU
         window_menu = Menu(menubar, tearoff=0)
@@ -708,6 +707,17 @@ class MainWindow:
         try:
             dialog = ObjectAnalysisDialog(self.root, self.current_image, self.app_manager)
             dialog.on_result_callback = lambda img: self._show_result(img, "Preview")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    # ============ INPAINTING - LAB 4 Zadanie 2 ============
+
+    @_require_image
+    def apply_inpainting(self):
+        """Inpainting - wypełnianie uszkodzonych obszarów"""
+        try:
+            dialog = InpaintingDialog(self.root, self.current_image, self.app_manager)
+            dialog.on_result_callback = lambda img: self._show_result(img, "Inpainting")
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
             

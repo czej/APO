@@ -12,6 +12,7 @@ from .morphology_dialog import MorphologyDialog, SkeletonizationDialog
 from .segmentation_dialog import DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from .histogram_dialog import StretchHistogramDialog
 from .object_analysis_dialog import ObjectAnalysisDialog
+from .inpainting_dialog import InpaintingDialog
 
 __all__ = [
     'ThresholdDialog',
@@ -31,6 +32,6 @@ __all__ = [
     'DoubleThresholdDialog',
     'OtsuThresholdDialog',
     'AdaptiveThresholdDialog',
-    'FeatureAnalysisDialog',
-    'MultiObjectFeatureDialog'
+    'ObjectFeatureDialog',
+    'InpaintingDialog'
 ]
