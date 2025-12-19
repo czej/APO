@@ -23,6 +23,8 @@ class ImageViewer:
         
         self.window = tk.Toplevel(parent)
         self.window.title(title)
+        # self.window.lift()
+        # self.window.attributes('-topmost', True) 
         
         # Bind focus event
         self.window.bind("<FocusIn>", self._on_focus)

@@ -9,6 +9,7 @@ from frontend.dialogs import ThresholdDialog, PosterizeDialog, StretchDialog, Bi
 from frontend.dialogs import SmoothingDialog, SharpeningDialog, PrewittDialog, SobelDialog, CustomMaskDialog, MedianDialog, CannyDialog
 from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThresholdDialog, OtsuThresholdDialog, AdaptiveThresholdDialog
 from frontend.dialogs import StretchHistogramDialog
+from frontend.dialogs import FeatureAnalysisDialog, MultiObjectFeatureDialog
 from backend.AppManager import AppManager
 
 
@@ -54,11 +55,6 @@ class MainWindow:
         type_menu.add_separator()
         type_menu.add_command(label="Maska binarna (0/1)", command=self.convert_to_binary_mask)
         type_menu.add_command(label="Maska 8-bit (0/255)", command=self.convert_to_8bit_mask)
-        
-        # Submenu: Adjust
-        adjust_menu = Menu(image_menu, tearoff=0)
-        image_menu.add_cascade(label="Dostosuj", menu=adjust_menu)
-        adjust_menu.add_command(label="Jasność/Kontrast...")
         
         # PROCESS MENU - LAB 1
         process_menu = Menu(menubar, tearoff=0)
@@ -127,10 +123,10 @@ class MainWindow:
         # ANALYZE MENU - LAB 3 & 4
         analyze_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Analiza", menu=analyze_menu)
-        analyze_menu.add_command(label="Histogram", command=self.show_histogram, accelerator="Ctrl+H")
+        analyze_menu.add_command(label="Histogram", command=self.show_histogram)
         analyze_menu.add_separator()
-        analyze_menu.add_command(label="Pomiar")
-        analyze_menu.add_command(label="Ustaw pomiary...")
+        analyze_menu.add_command(label="Analiza cech obiektu", command=self.analyze_object_features)
+        analyze_menu.add_command(label="Analiza wielu obiektów", command=self.analyze_multiple_objects)
         
         # Morphology submenu
         # Morphology submenu - LAB 3
@@ -238,7 +234,7 @@ class MainWindow:
             return func(self, *args, **kwargs)
         return wrapper
     
-    def _require_multiple_images(min_count=2):  # DODAJ TEN DEKORATOR
+    def _require_multiple_images(min_count=2):
         """
         Dekorator sprawdzający czy jest wystarczająco dużo obrazów.
         
@@ -697,6 +693,52 @@ class MainWindow:
         try:
             dialog = SkeletonizationDialog(self.root, self.current_image, self.app_manager)
             dialog.on_result_callback = lambda img: self._show_result(img, "Szkieletyzacja")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    # ============ FEATURE ANALYSIS - LAB 4 Zadanie 1 ============
+
+    def analyze_object_features(self):
+        """Analiza cech pojedynczego obiektu binarnego"""
+        if self.current_image is None:
+            messagebox.showinfo("Info", "Nie załadowano obrazu")
+            return
+        
+        # Sprawdź czy obraz jest binarny
+        unique_vals = np.unique(self.current_image)
+        if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
+            response = messagebox.askyesno(
+                "Ostrzeżenie", 
+                "Obraz nie jest binarny. Czy chcesz najpierw zastosować progowanie Otsu?"
+            )
+            if response:
+                self.apply_otsu_threshold()
+            return
+        
+        try:
+            dialog = FeatureAnalysisDialog(self.root, self.current_image, self.app_manager)
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
+
+    def analyze_multiple_objects(self):
+        """Analiza cech wielu obiektów na obrazie binarnym"""
+        if self.current_image is None:
+            messagebox.showinfo("Info", "Nie załadowano obrazu")
+            return
+        
+        # Sprawdź czy obraz jest binarny
+        unique_vals = np.unique(self.current_image)
+        if not (len(unique_vals) <= 2 and (unique_vals.max() == 255 or unique_vals.max() == 1)):
+            response = messagebox.askyesno(
+                "Ostrzeżenie", 
+                "Obraz nie jest binarny. Czy chcesz najpierw zastosować progowanie Otsu?"
+            )
+            if response:
+                self.apply_otsu_threshold()
+            return
+        
+        try:
+            dialog = MultiObjectFeatureDialog(self.root, self.current_image, self.app_manager)
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
         
