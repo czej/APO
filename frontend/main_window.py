@@ -11,6 +11,7 @@ from frontend.dialogs import MorphologyDialog, SkeletonizationDialog, DoubleThre
 from frontend.dialogs import StretchHistogramDialog
 from frontend.dialogs import ObjectAnalysisDialog
 from frontend.dialogs import InpaintingDialog
+from frontend.dialogs import CustomMorphologyDialog
 from backend.AppManager import AppManager
 
 
@@ -139,6 +140,9 @@ class MainWindow:
         morphology_menu.add_command(label="Zamknięcie", command=self.apply_closing)
         morphology_menu.add_separator()
         morphology_menu.add_command(label="Szkieletyzacja", command=self.apply_skeletonization)
+        morphology_menu.add_separator()
+        morphology_menu.add_command(label="Erozja (własny element strukturalny)",  command=self.apply_custom_erosion)
+        morphology_menu.add_command(label="Dylacja (własny element strukturalny)", command=self.apply_custom_dilation)
         
         # PLUGINS MENU
         plugins_menu = Menu(menubar, tearoff=0)
@@ -245,6 +249,32 @@ class MainWindow:
                 return func(self, *args, **kwargs)
             return wrapper
         return decorator
+    
+    def _require_binary(func):
+        """Dekorator sprawdzający czy obraz jest binarny (0/255)"""
+        def wrapper(self, *args, **kwargs):
+            if self.current_image is None:
+                messagebox.showwarning("No Active Image", "Please open an image first.")
+                return None
+            if len(self.current_image.shape) != 2:
+                messagebox.showerror(
+                    "Błąd — obraz nie jest binarny",
+                    "Obraz nie jest jednokanalowy.\n"
+                    "Wymagany obraz w skali szarości (2D)."
+                )
+                return None
+            unique = set(np.unique(self.current_image).tolist())
+            if not unique.issubset({0, 255}):
+                messagebox.showerror(
+                    "Błąd — obraz nie jest binarny",
+                    f"Dozwolone wartości pikselów: 0 i 255.\n"
+                    f"Znalezione wartości: {sorted(unique)}\n\n"
+                    "Wskazówka: przekonwertuj obraz na binarny np.\n"
+                    "Przetwarzanie → Binaryzacja → Progowanie Otsu"
+                )
+                return None
+            return func(self, *args, **kwargs)
+        return wrapper
     
     # ============ FILE OPERATIONS ============
     
@@ -720,6 +750,26 @@ class MainWindow:
             dialog.on_result_callback = lambda img: self._show_result(img, "Inpainting")
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
+
+    # ============ EGZAMIN ============
+
+    @_require_binary
+    def apply_custom_erosion(self):
+        """Erozja z edytorem elementu strukturyzującego."""
+        if self.current_image is None:
+            messagebox.showwarning("No Active Image", "Please open an image first.")
+            return
+        dialog = CustomMorphologyDialog(self.root, self.current_image, "erode")
+        dialog.on_result_callback = lambda img: self._show_result(img, "Erozja (własny SE)")
+
+    @_require_binary
+    def apply_custom_dilation(self):
+        """Dylacja z edytorem elementu strukturyzującego."""
+        if self.current_image is None:
+            messagebox.showwarning("No Active Image", "Please open an image first.")
+            return
+        dialog = CustomMorphologyDialog(self.root, self.current_image, "dilate")
+        dialog.on_result_callback = lambda img: self._show_result(img, "Dylacja (własny SE)")
             
     # ============ WINDOW MANAGEMENT ============
     
