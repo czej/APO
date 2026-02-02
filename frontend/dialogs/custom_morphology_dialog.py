@@ -9,7 +9,7 @@ class StructuringElementEditor(tk.Frame):
     Interaktywny edytor elementu strukturyzującego.
 
     - Siatka NxN przycisków-toggleów (białe = 1 / ciemne = 0).
-    - Przyciąg do zmiany rozmiary (3…15, nieparzyste).
+    - Przyciąg do zmiany rozmiary (3…13, nieparzyste).
     - Przyciągi presetów: pełny, krzyż, X, ramka.
     - Odczyt bieżącego kernela jako np.ndarray uint8.
     """
@@ -48,7 +48,7 @@ class StructuringElementEditor(tk.Frame):
                  fg="#ccc", font=("Consolas", 9)).pack(side=tk.LEFT, padx=(0, 4))
 
         self._size_var = tk.IntVar(value=self._size)
-        sizes = [3, 5, 7, 9, 11, 13, 15]
+        sizes = [3, 5, 7, 9, 11, 13]
         self._size_combo = ttk.Combobox(
             size_frame, values=sizes, textvariable=self._size_var,
             width=4, state="readonly"
@@ -77,6 +77,7 @@ class StructuringElementEditor(tk.Frame):
     # ─── siatka toggleów ──────────────────────────────────────────────────
 
     def _build_grid_frame(self):
+        # Fixed-size frame, grid scales to fit
         self._grid_frame = tk.Frame(self, bg="#1e1e1e")
         self._grid_frame.pack(pady=4)
 
@@ -89,7 +90,18 @@ class StructuringElementEditor(tk.Frame):
         self._buttons = []
         self._size = n
 
-        cell = max(24, 48 - 2 * n)   # wielkość komórki zależy od N
+        # Fixed approach: make 5x5 look like original (nice size)
+        # and scale down proportionally for larger grids
+        # For 5x5: pad=12 looks good
+        # For 15x15: pad=4 is minimum
+        # Linear scale: pad = max(4, 12 - (n-5))
+        
+        if n <= 5:
+            pad = 12
+        elif n <= 9:
+            pad = 6
+        else:
+            pad = 0
 
         for r in range(n):
             row_vals = []
@@ -105,7 +117,7 @@ class StructuringElementEditor(tk.Frame):
                     relief=tk.FLAT, bd=1, highlightthickness=1,
                     highlightbackground="#444"
                 )
-                btn.grid(row=r, column=c, padx=1, pady=1, ipady=cell//3, ipadx=cell//4)
+                btn.grid(row=r, column=c, padx=1, pady=1, ipady=pad, ipadx=pad)
                 # zamknięcie nad r, c w lambda
                 btn.config(command=lambda row=r, col=c: self._toggle(row, col))
                 btn.bind("<Enter>", lambda e, row=r, col=c: self._on_hover(row, col, True))
@@ -117,6 +129,9 @@ class StructuringElementEditor(tk.Frame):
     def _toggle(self, r: int, c: int):
         self._grid[r][c] = 1 - self._grid[r][c]
         self._refresh_button(r, c)
+        # trigger callback if set
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _on_hover(self, r: int, c: int, entering: bool):
         btn = self._buttons[r][c]
@@ -147,6 +162,9 @@ class StructuringElementEditor(tk.Frame):
         self._init_grid(new_size)
         self._embed_old_kernel(old)
         self._refresh_all()
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _embed_old_kernel(self, old: np.ndarray):
         """Wkłada stary kernel (mniejszy lub większy) w środek nowej siatki."""
@@ -168,6 +186,9 @@ class StructuringElementEditor(tk.Frame):
             for c in range(self._size):
                 self._grid[r][c] = value
         self._refresh_all()
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _apply_preset_full(self):
         self._set_all(1)
@@ -199,6 +220,10 @@ class StructuringElementEditor(tk.Frame):
         self._refresh_all()
 
     # ─── output ───────────────────────────────────────────────────────────
+
+    def set_on_change_callback(self, callback):
+        """Ustawia callback wywoływany przy każdej zmianie kernela."""
+        self._on_change_callback = callback
 
     def get_kernel(self) -> np.ndarray:
         """Zwraca bieżący element strukturyzujący jako np.ndarray uint8 (0/1)."""
@@ -236,7 +261,7 @@ class CustomMorphologyDialog:
 
         self.window = tk.Toplevel(master)
         self.window.title(f"{op_label} — Element strukturyzujący")
-        self.window.geometry("520x680")
+        self.window.geometry("540x1000")
         self.window.configure(bg="#2b2b2b")
         self.window.grab_set()
         self.window.focus_set()
@@ -264,18 +289,8 @@ class CustomMorphologyDialog:
         # --- edytor ---
         self.editor = StructuringElementEditor(self.window)
         self.editor.pack(pady=(4, 6))
-
-        # --- przyciąg "Zastosuj preview" ---
-        btn_frame = tk.Frame(self.window, bg="#2b2b2b")
-        btn_frame.pack(pady=4)
-
-        tk.Button(
-            btn_frame, text="⟳  Aktualizuj preview",
-            command=self._update_preview,
-            bg="#3a6ea5", fg="#fff", relief=tk.FLAT,
-            activebackground="#4a7eb5", font=("Consolas", 9, "bold"),
-            padx=14, pady=4, bd=0, cursor="hand2"
-        ).pack(side=tk.LEFT, padx=4)
+        # live preview przy każdej zmianie
+        self.editor.set_on_change_callback(self._update_preview)
 
         # --- preview pane ---
         preview_frame = tk.LabelFrame(
@@ -369,14 +384,20 @@ class CustomMorphologyDialog:
         self._kernel_label.config(image=self._kernel_tk)
 
     def _show_image_preview(self, result: np.ndarray):
-        """Wyświetla obraz wynikowy, przeskalowany do max 300px po dłuższej krawędzi."""
-        max_px = 300
+        """
+        Wyświetla obraz wynikowy, przeskalowany do ~200px (stały rozmiar).
+        Zachowuje aspect ratio — zawsze wypełnia obszar preview.
+        """
+        target_size = 200  # stały rozmiar podglądu
         h, w = result.shape[:2]
-        scale = min(max_px / max(h, w), 1.0)
-        new_w, new_h = int(w * scale), int(h * scale)
-        if new_w < 1: new_w = 1
-        if new_h < 1: new_h = 1
-
+        
+        # oblicz skalę żeby dłuższa krawędź miała target_size
+        scale = target_size / max(h, w)
+        new_w = max(1, int(w * scale))
+        new_h = max(1, int(h * scale))
+        
+        # upscale używa NEAREST dla obrazów binarnych (ostre krawędzie)
+        # downscale też NEAREST żeby zachować ostre piksele
         pil_img = Image.fromarray(result, mode="L").resize((new_w, new_h), Image.NEAREST)
         self._preview_tk = ImageTk.PhotoImage(pil_img)
         self._preview_label.config(image=self._preview_tk)
