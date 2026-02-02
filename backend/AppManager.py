@@ -1,3 +1,4 @@
+from backend.CustomMorphologyOperations import CustomMorphologyOperations
 from backend.PointOperations import PointOperations
 from backend.Histogram import HistogramManager
 from backend.LogicalOperations import LogicalOperations 
@@ -192,3 +193,8 @@ class AppManager:
     def morphology_skeletonization(self, image):
         return MorphologyOperations.skeletonization(image)
     
+    def custom_erode(self, image, kernel):
+        return CustomMorphologyOperations.erode(image, kernel)
+    
+    def custom_dilate(self, image, kernel):
+        return CustomMorphologyOperations.dilate(image, kernel)

@@ -14,7 +14,7 @@ class CustomMorphologyOperations:
     @staticmethod
     def _validate_binary(image: np.ndarray) -> None:
         """
-        Sprawdza, czy obraz jest binarny (jedynie wartości 0 i 255).
+        Sprawdza, czy obraz jest binarny (wartości 0/255 lub 0/1).
         Rzuca ValueError z czytelną wiadomością jeśli nie jest.
         """
         if image.ndim != 2:
@@ -23,14 +23,13 @@ class CustomMorphologyOperations:
                 "Wymagany obraz w skali szarości (2D)."
             )
 
-        unique = np.unique(image)
-        # dopuszczamy {0}, {255}, {0, 255}
-        allowed = {0, 255}
-        if not set(unique.tolist()).issubset(allowed):
+        unique = set(np.unique(image).tolist())
+        # dopuszczamy {0}, {1}, {255}, {0, 1}, {0, 255}
+        if not (unique.issubset({0, 255}) or unique.issubset({0, 1})):
             raise ValueError(
                 "Obraz nie jest binarny.\n\n"
-                "Dozwolone wartości pikselów: 0 i 255.\n"
-                f"Znalezione wartości: {sorted(unique.tolist())}\n\n"
+                "Dozwolone wartości pikselów: 0/255 lub 0/1.\n"
+                f"Znalezione wartości: {sorted(unique)}\n\n"
                 "Wskazówka: przekonwertuj obraz na binarny np.\n"
                 "Przetwarzanie → Binaryzacja → Progowanie Otsu"
             )
@@ -52,46 +51,45 @@ class CustomMorphologyOperations:
                 "Zaznacz przynajmniej jedną komórku."
             )
 
+    # ─── helper ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _is_01_mask(image: np.ndarray) -> bool:
+        """True jeśli obraz jest maską 0/1 (max wartość <= 1)."""
+        return image.max() <= 1
+
     # ─── operacje ─────────────────────────────────────────────────────────
 
     @staticmethod
     def erode(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
         """
         Erozja obrazu binarnego z podanym elementem strukturyzującym.
-
-        Parameters
-        ----------
-        image  : np.ndarray, shape (H, W), dtype uint8 — obraz binarny (0/255)
-        kernel : np.ndarray, shape (kH, kW), dtype uint8 — element strukturyzujący (0/1)
-
-        Returns
-        -------
-        np.ndarray — wynik erozji
+        Działa dla maski 0/255 i 0/1 — wynik ma ten sam zakres co wejście.
         """
         CustomMorphologyOperations._validate_binary(image)
         CustomMorphologyOperations._validate_kernel(kernel)
 
         kernel = kernel.astype(np.uint8)
-        result = cv2.morphologyEx(image, cv2.MORPH_ERODE, kernel)
-        return result
+        is_01 = CustomMorphologyOperations._is_01_mask(image)
+
+        work = image * 255 if is_01 else image
+        result = cv2.morphologyEx(work, cv2.MORPH_ERODE, kernel)
+
+        return (result // 255).astype(np.uint8) if is_01 else result
 
     @staticmethod
     def dilate(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
         """
         Dylacja obrazu binarnego z podanym elementem strukturyzującym.
-
-        Parameters
-        ----------
-        image  : np.ndarray, shape (H, W), dtype uint8 — obraz binarny (0/255)
-        kernel : np.ndarray, shape (kH, kW), dtype uint8 — element strukturyzujący (0/1)
-
-        Returns
-        -------
-        np.ndarray — wynik dylacji
+        Działa dla maski 0/255 i 0/1 — wynik ma ten sam zakres co wejście.
         """
         CustomMorphologyOperations._validate_binary(image)
         CustomMorphologyOperations._validate_kernel(kernel)
 
         kernel = kernel.astype(np.uint8)
-        result = cv2.morphologyEx(image, cv2.MORPH_DILATE, kernel)
-        return result
+        is_01 = CustomMorphologyOperations._is_01_mask(image)
+
+        work = image * 255 if is_01 else image
+        result = cv2.morphologyEx(work, cv2.MORPH_DILATE, kernel)
+
+        return (result // 255).astype(np.uint8) if is_01 else result

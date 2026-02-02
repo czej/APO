@@ -251,23 +251,23 @@ class MainWindow:
         return decorator
     
     def _require_binary(func):
-        """Dekorator sprawdzający czy obraz jest binarny (0/255)"""
+        """Dekorator sprawdzający czy obraz jest binarny (0/255 lub 0/1)"""
         def wrapper(self, *args, **kwargs):
             if self.current_image is None:
-                messagebox.showwarning("No Active Image", "Please open an image first.")
+                messagebox.showwarning("Brak aktywnego obrazu.", "Wczytaj najpierw obraz.")
                 return None
             if len(self.current_image.shape) != 2:
                 messagebox.showerror(
                     "Błąd — obraz nie jest binarny",
-                    "Obraz nie jest jednokanalowy.\n"
+                    "Obraz nie jest jednokanałowy.\n"
                     "Wymagany obraz w skali szarości (2D)."
                 )
                 return None
             unique = set(np.unique(self.current_image).tolist())
-            if not unique.issubset({0, 255}):
+            if not (unique.issubset({0, 255}) or unique.issubset({0, 1})):
                 messagebox.showerror(
                     "Błąd — obraz nie jest binarny",
-                    f"Dozwolone wartości pikselów: 0 i 255.\n"
+                    f"Dozwolone wartości pikselów: 0/255 lub 0/1.\n"
                     f"Znalezione wartości: {sorted(unique)}\n\n"
                     "Wskazówka: przekonwertuj obraz na binarny np.\n"
                     "Przetwarzanie → Binaryzacja → Progowanie Otsu"
@@ -755,21 +755,19 @@ class MainWindow:
 
     @_require_binary
     def apply_custom_erosion(self):
-        """Erozja z edytorem elementu strukturyzującego."""
-        if self.current_image is None:
-            messagebox.showwarning("No Active Image", "Please open an image first.")
-            return
-        dialog = CustomMorphologyDialog(self.root, self.current_image, "erode")
-        dialog.on_result_callback = lambda img: self._show_result(img, "Erozja (własny SE)")
+        try:
+            dialog = CustomMorphologyDialog(self.root, self.current_image, self.app_manager, "erode")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Erozja (własny SE)")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
 
     @_require_binary
     def apply_custom_dilation(self):
-        """Dylacja z edytorem elementu strukturyzującego."""
-        if self.current_image is None:
-            messagebox.showwarning("No Active Image", "Please open an image first.")
-            return
-        dialog = CustomMorphologyDialog(self.root, self.current_image, "dilate")
-        dialog.on_result_callback = lambda img: self._show_result(img, "Dylacja (własny SE)")
+        try:
+            dialog = CustomMorphologyDialog(self.root, self.current_image, self.app_manager, "dilate")
+            dialog.on_result_callback = lambda img: self._show_result(img, "Dylacja (własny SE)")
+        except ValueError as e:
+            messagebox.showerror("Błąd", str(e))
             
     # ============ WINDOW MANAGEMENT ============
     

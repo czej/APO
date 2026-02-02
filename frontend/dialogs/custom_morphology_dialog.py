@@ -3,8 +3,6 @@ from tkinter import messagebox, ttk
 import numpy as np
 from PIL import Image, ImageTk
 
-from backend.custom_morphology_operations import CustomMorphologyOperations
-
 
 class StructuringElementEditor(tk.Frame):
     """
@@ -218,7 +216,7 @@ class CustomMorphologyDialog:
     się zamyka bez otwarcia okna.
     """
 
-    def __init__(self, master, image: np.ndarray, operation: str):
+    def __init__(self, master, image: np.ndarray, app_manager, operation: str):
         """
         Parameters
         ----------
@@ -229,17 +227,9 @@ class CustomMorphologyDialog:
         self.master = master
         self.image  = image
         self.operation = operation
+        self.app_manager = app_manager
         self.on_result_callback = None   # lambda img: ...
 
-        # ─── walidacja na wstępie ─────────────────────────────────────
-        try:
-            CustomMorphologyOperations._validate_binary(image)
-        except ValueError as e:
-            messagebox.showerror(
-                "Błąd — obraz nie jest binarny",
-                str(e)
-            )
-            return   # nie otwieramy okna
 
         # ─── budowa okna ──────────────────────────────────────────────
         op_label = "Erozja" if operation == "erode" else "Dylacja"
@@ -346,9 +336,9 @@ class CustomMorphologyDialog:
         # --- próba obliczenia wyniku ---
         try:
             if self.operation == "erode":
-                result = CustomMorphologyOperations.erode(self.image, kernel)
+                result = self.app_manager.custom_erode(self.image, kernel)
             else:
-                result = CustomMorphologyOperations.dilate(self.image, kernel)
+                result = self.app_manager.custom_dilate(self.image, kernel)
             self._last_result = result
             self._show_image_preview(result)
         except ValueError as e:
@@ -398,9 +388,9 @@ class CustomMorphologyDialog:
         kernel = self.editor.get_kernel()
         try:
             if self.operation == "erode":
-                result = CustomMorphologyOperations.erode(self.image, kernel)
+                result = self.app_manager.custom_erode(self.image, kernel)
             else:
-                result = CustomMorphologyOperations.dilate(self.image, kernel)
+                result = self.app_manager.custom_dilate(self.image, kernel)
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
             return
