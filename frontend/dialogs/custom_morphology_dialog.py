@@ -525,6 +525,10 @@ class CustomMorphologyDialog:
         target_size = 200  # stały rozmiar podglądu
         h, w = result.shape[:2]
         
+        # Konwertuj 0/1 na 0/255 dla poprawnego wyświetlenia
+        if result.max() <= 1:
+            result = result * 255
+        
         # oblicz skalę żeby dłuższa krawędź miała target_size
         scale = target_size / max(h, w)
         new_w = max(1, int(w * scale))
