@@ -1,3 +1,4 @@
+import numpy as np
 from backend.CustomMorphologyOperations import CustomMorphologyOperations
 from backend.PointOperations import PointOperations
 from backend.Histogram import HistogramManager
@@ -193,8 +194,12 @@ class AppManager:
     def morphology_skeletonization(self, image):
         return MorphologyOperations.skeletonization(image)
     
-    def custom_erode(self, image, kernel):
-        return CustomMorphologyOperations.erode(image, kernel)
-    
-    def custom_dilate(self, image, kernel):
-        return CustomMorphologyOperations.dilate(image, kernel)
+    def custom_erode(self, image: np.ndarray, kernel: np.ndarray, 
+                     border_type: str = "BORDER_REFLECT", border_value: int = 0) -> np.ndarray:
+        """Erozja z dowolnym elementem strukturyzującym (cv2.morphologyEx)."""
+        return CustomMorphologyOperations.erode(image, kernel, border_type, border_value)
+
+    def custom_dilate(self, image: np.ndarray, kernel: np.ndarray,
+                      border_type: str = "BORDER_REFLECT", border_value: int = 0) -> np.ndarray:
+        """Dylacja z dowolnym elementem strukturyzującym (cv2.morphologyEx)."""
+        return CustomMorphologyOperations.dilate(image, kernel, border_type, border_value)

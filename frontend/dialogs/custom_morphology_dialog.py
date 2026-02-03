@@ -8,10 +8,10 @@ class StructuringElementEditor(tk.Frame):
     """
     Interaktywny edytor elementu strukturyzującego.
 
-    - Siatka NxN przycisków-toggleów (białe = 1 / ciemne = 0).
-    - Przyciąg do zmiany rozmiary (3…13, nieparzyste).
-    - Przyciągi presetów: pełny, krzyż, X, ramka.
-    - Odczyt bieżącego kernela jako np.ndarray uint8.
+    - Siatka NxN przycisków-toggleów
+    - Zmiana rozmiaru siatki
+    - Presety: pełny, krzyż, X, ramka.
+    - Odczyt bieżącego kernela
     """
 
     # kolory komórki
@@ -90,12 +90,7 @@ class StructuringElementEditor(tk.Frame):
         self._buttons = []
         self._size = n
 
-        # Fixed approach: make 5x5 look like original (nice size)
-        # and scale down proportionally for larger grids
-        # For 5x5: pad=12 looks good
-        # For 15x15: pad=4 is minimum
-        # Linear scale: pad = max(4, 12 - (n-5))
-        
+        # Skalowanie kwadratow        
         if n <= 5:
             pad = 12
         elif n <= 9:
@@ -186,12 +181,13 @@ class StructuringElementEditor(tk.Frame):
             for c in range(self._size):
                 self._grid[r][c] = value
         self._refresh_all()
-        # trigger callback
-        if hasattr(self, '_on_change_callback') and self._on_change_callback:
-            self._on_change_callback()
+        # Don't trigger callback here - will be called by preset methods
 
     def _apply_preset_full(self):
         self._set_all(1)
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _apply_preset_cross(self):
         self._set_all(0)
@@ -200,6 +196,9 @@ class StructuringElementEditor(tk.Frame):
             self._grid[mid][i] = 1
             self._grid[i][mid] = 1
         self._refresh_all()
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _apply_preset_x(self):
         self._set_all(0)
@@ -208,6 +207,9 @@ class StructuringElementEditor(tk.Frame):
             self._grid[i][i] = 1
             self._grid[i][n - 1 - i] = 1
         self._refresh_all()
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     def _apply_preset_frame(self):
         self._set_all(0)
@@ -218,6 +220,9 @@ class StructuringElementEditor(tk.Frame):
             self._grid[i][0]     = 1
             self._grid[i][n-1]   = 1
         self._refresh_all()
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
 
     # ─── output ───────────────────────────────────────────────────────────
 
@@ -292,6 +297,50 @@ class CustomMorphologyDialog:
         # live preview przy każdej zmianie
         self.editor.set_on_change_callback(self._update_preview)
 
+        # --- kontrolki brzegów ---
+        border_frame = tk.LabelFrame(
+            self.window, text=" Obsługa brzegów ",
+            font=("Consolas", 9), bg="#2b2b2b", fg="#aaa",
+            bd=1, relief=tk.GROOVE
+        )
+        border_frame.pack(fill=tk.X, padx=16, pady=(4, 4))
+
+        # Typ brzegu
+        border_row1 = tk.Frame(border_frame, bg="#2b2b2b")
+        border_row1.pack(fill=tk.X, padx=8, pady=(6, 2))
+        
+        tk.Label(border_row1, text="Typ brzegu:", bg="#2b2b2b",
+                 fg="#ccc", font=("Consolas", 9)).pack(side=tk.LEFT)
+        
+        self.border_type_var = tk.StringVar(value="BORDER_REFLECT")
+        border_combo = ttk.Combobox(
+            border_row1,
+            textvariable=self.border_type_var,
+            values=["BORDER_CONSTANT", "BORDER_REFLECT", "Wypełnienie wyniku stałą"],
+            state='readonly',
+            width=25
+        )
+        border_combo.pack(side=tk.LEFT, padx=8)
+        border_combo.bind('<<ComboboxSelected>>', self._on_border_type_changed)
+
+        # Wartość stała
+        border_row2 = tk.Frame(border_frame, bg="#2b2b2b")
+        border_row2.pack(fill=tk.X, padx=8, pady=(2, 6))
+        
+        tk.Label(border_row2, text="Wartość stała:", bg="#2b2b2b",
+                 fg="#ccc", font=("Consolas", 9)).pack(side=tk.LEFT)
+        
+        self.border_value_var = tk.IntVar(value=0)
+        self.border_value_combo = ttk.Combobox(
+            border_row2,
+            textvariable=self.border_value_var,
+            values=[0, 255],
+            state='disabled',
+            width=10
+        )
+        self.border_value_combo.pack(side=tk.LEFT, padx=8)
+        self.border_value_combo.bind('<<ComboboxSelected>>', lambda e: self._update_preview())
+
         # --- preview pane ---
         preview_frame = tk.LabelFrame(
             self.window, text=" Preview wyniku ",
@@ -300,24 +349,34 @@ class CustomMorphologyDialog:
         )
         preview_frame.pack(fill=tk.X, padx=16, pady=(4, 4))
 
-        # mały podgląd kernela
-        kernel_row = tk.Frame(preview_frame, bg="#2b2b2b")
-        kernel_row.pack(fill=tk.X, padx=8, pady=(6, 2))
-        tk.Label(kernel_row, text="Kernel:", bg="#2b2b2b",
-                 fg="#aaa", font=("Consolas", 8)).pack(side=tk.LEFT)
-        self._kernel_label = tk.Label(kernel_row, bg="#2b2b2b")
-        self._kernel_label.pack(side=tk.LEFT, padx=6)
+        # Container for side-by-side layout
+        preview_container = tk.Frame(preview_frame, bg="#2b2b2b")
+        preview_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
 
-        # obraz wynikowy
-        self._preview_label = tk.Label(preview_frame, bg="#2b2b2b")
-        self._preview_label.pack(pady=(2, 6))
+        # Left side: kernel preview
+        kernel_frame = tk.Frame(preview_container, bg="#2b2b2b")
+        kernel_frame.pack(side=tk.LEFT, padx=(0, 8))
+        
+        tk.Label(kernel_frame, text="Kernel:", bg="#2b2b2b",
+                 fg="#aaa", font=("Consolas", 8)).pack(anchor=tk.W)
+        self._kernel_label = tk.Label(kernel_frame, bg="#2b2b2b")
+        self._kernel_label.pack()
 
-        # info o błędzie
+        # Right side: image preview
+        image_frame = tk.Frame(preview_container, bg="#2b2b2b")
+        image_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        tk.Label(image_frame, text="Wynik:", bg="#2b2b2b",
+                 fg="#aaa", font=("Consolas", 8)).pack(anchor=tk.W)
+        self._preview_label = tk.Label(image_frame, bg="#2b2b2b")
+        self._preview_label.pack()
+
+        # info o błędzie (below both)
         self._error_label = tk.Label(
             preview_frame, text="", bg="#2b2b2b", fg="#f55",
             font=("Consolas", 8), wraplength=440, justify=tk.LEFT
         )
-        self._error_label.pack(pady=(0, 4), padx=8)
+        self._error_label.pack(pady=(4, 4), padx=8)
 
         # --- przyciągi OK / Anuluj ---
         bottom = tk.Frame(self.window, bg="#2b2b2b")
@@ -341,9 +400,21 @@ class CustomMorphologyDialog:
 
     # ─── preview ──────────────────────────────────────────────────────────
 
+    def _on_border_type_changed(self, event=None):
+        """Włącza/wyłącza combobox wartości w zależności od typu brzegu"""
+        border_type = self.border_type_var.get()
+        if border_type in ["BORDER_CONSTANT", "Wypełnienie wyniku stałą"]:
+            self.border_value_combo.config(state='readonly')
+        else:
+            self.border_value_combo.config(state='disabled')
+        # Update preview when border type changes
+        self._update_preview()
+
     def _update_preview(self):
         self._error_label.config(text="")
         kernel = self.editor.get_kernel()
+        border_type = self.border_type_var.get()
+        border_value = self.border_value_var.get()
 
         # --- malutki podgląd kernela ---
         self._show_kernel_preview(kernel)
@@ -351,9 +422,13 @@ class CustomMorphologyDialog:
         # --- próba obliczenia wyniku ---
         try:
             if self.operation == "erode":
-                result = self.app_manager.custom_erode(self.image, kernel)
+                result = self.app_manager.custom_erode(
+                    self.image, kernel, border_type, border_value
+                )
             else:
-                result = self.app_manager.custom_dilate(self.image, kernel)
+                result = self.app_manager.custom_dilate(
+                    self.image, kernel, border_type, border_value
+                )
             self._last_result = result
             self._show_image_preview(result)
         except ValueError as e:
@@ -407,11 +482,18 @@ class CustomMorphologyDialog:
     def _apply(self):
         """Oblicza wynik i przekazuje do callback, potem zamyka okno."""
         kernel = self.editor.get_kernel()
+        border_type = self.border_type_var.get()
+        border_value = self.border_value_var.get()
+        
         try:
             if self.operation == "erode":
-                result = self.app_manager.custom_erode(self.image, kernel)
+                result = self.app_manager.custom_erode(
+                    self.image, kernel, border_type, border_value
+                )
             else:
-                result = self.app_manager.custom_dilate(self.image, kernel)
+                result = self.app_manager.custom_dilate(
+                    self.image, kernel, border_type, border_value
+                )
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
             return
