@@ -11,7 +11,8 @@ class StructuringElementEditor(tk.Frame):
     - Siatka NxN przycisków-toggleów
     - Zmiana rozmiaru siatki
     - Presety: pełny, krzyż, X, ramka.
-    - Odczyt bieżącego kernela
+    - Wybór punktu zaczepienia (anchor point) - podświetlony na czerwono
+    - Odczyt bieżącego kernela i punktu zaczepienia
     """
 
     # kolory komórki
@@ -19,6 +20,10 @@ class StructuringElementEditor(tk.Frame):
     _COLOR_OFF = "#2d2d2d"   # ciemne  — piksel nieaktywny
     _COLOR_HOVER_ON  = "#66BB6A"
     _COLOR_HOVER_OFF = "#3e3e3e"
+    _COLOR_ANCHOR = "#ff3333"  # czerwone — anchor na nieaktywnym
+    _COLOR_ANCHOR_HOVER = "#ff5555"
+    _COLOR_ANCHOR_ACTIVE = "#ff8800"  # pomarańczowy — anchor na aktywnym (zielone+czerwone)
+    _COLOR_ANCHOR_ACTIVE_HOVER = "#ffaa33"
 
     def __init__(self, master, initial_size: int = 3):
         super().__init__(master, bg="#1e1e1e", padx=6, pady=6)
@@ -28,6 +33,8 @@ class StructuringElementEditor(tk.Frame):
         self._grid: list[list[int]] = []
         # lista widżetów Button
         self._buttons: list[list[tk.Button]] = []
+        # punkt zaczepienia (domyślnie środek)
+        self._anchor = (initial_size // 2, initial_size // 2)
 
         self._build_controls()
         self._build_grid_frame()
@@ -89,6 +96,8 @@ class StructuringElementEditor(tk.Frame):
         self._grid = []
         self._buttons = []
         self._size = n
+        # ustaw anchor na środek przy zmianie rozmiaru
+        self._anchor = (n // 2, n // 2)
 
         # Skalowanie kwadratow        
         if n <= 5:
@@ -117,6 +126,8 @@ class StructuringElementEditor(tk.Frame):
                 btn.config(command=lambda row=r, col=c: self._toggle(row, col))
                 btn.bind("<Enter>", lambda e, row=r, col=c: self._on_hover(row, col, True))
                 btn.bind("<Leave>", lambda e, row=r, col=c: self._on_hover(row, col, False))
+                # prawy przycisk myszy - ustaw anchor
+                btn.bind("<Button-3>", lambda e, row=r, col=c: self._set_anchor(row, col))
                 row_btns.append(btn)
             self._grid.append(row_vals)
             self._buttons.append(row_btns)
@@ -128,18 +139,51 @@ class StructuringElementEditor(tk.Frame):
         if hasattr(self, '_on_change_callback') and self._on_change_callback:
             self._on_change_callback()
 
+    def _set_anchor(self, r: int, c: int):
+        """Ustawia punkt zaczepienia na (r, c)."""
+        old_anchor = self._anchor
+        self._anchor = (r, c)
+        # odśwież stary i nowy anchor
+        self._refresh_button(old_anchor[0], old_anchor[1])
+        self._refresh_button(r, c)
+        # trigger callback
+        if hasattr(self, '_on_change_callback') and self._on_change_callback:
+            self._on_change_callback()
+
     def _on_hover(self, r: int, c: int, entering: bool):
         btn = self._buttons[r][c]
         if entering:
-            btn.config(bg=self._COLOR_HOVER_ON if self._grid[r][c] else self._COLOR_HOVER_OFF)
+            if (r, c) == self._anchor:
+                # anchor - hover version zależna od stanu
+                if self._grid[r][c]:
+                    btn.config(bg=self._COLOR_ANCHOR_ACTIVE_HOVER)
+                else:
+                    btn.config(bg=self._COLOR_ANCHOR_HOVER)
+            else:
+                btn.config(bg=self._COLOR_HOVER_ON if self._grid[r][c] else self._COLOR_HOVER_OFF)
         else:
             self._refresh_button(r, c)
 
     def _refresh_button(self, r: int, c: int):
-        self._buttons[r][c].config(
-            bg=self._COLOR_ON if self._grid[r][c] else self._COLOR_OFF,
-            activebackground=self._COLOR_HOVER_ON if self._grid[r][c] else self._COLOR_HOVER_OFF
-        )
+        """Odświeża kolor przycisku na podstawie stanu i czy jest anchor."""
+        if (r, c) == self._anchor:
+            # punkt zaczepienia - pomarańczowy (aktywny) lub czerwony (nieaktywny)
+            if self._grid[r][c]:
+                self._buttons[r][c].config(
+                    bg=self._COLOR_ANCHOR_ACTIVE,
+                    activebackground=self._COLOR_ANCHOR_ACTIVE_HOVER
+                )
+            else:
+                self._buttons[r][c].config(
+                    bg=self._COLOR_ANCHOR,
+                    activebackground=self._COLOR_ANCHOR_HOVER
+                )
+        else:
+            # normalny piksel - zielony lub szary
+            self._buttons[r][c].config(
+                bg=self._COLOR_ON if self._grid[r][c] else self._COLOR_OFF,
+                activebackground=self._COLOR_HOVER_ON if self._grid[r][c] else self._COLOR_HOVER_OFF
+            )
 
     def _refresh_all(self):
         for r in range(self._size):
@@ -234,6 +278,10 @@ class StructuringElementEditor(tk.Frame):
         """Zwraca bieżący element strukturyzujący jako np.ndarray uint8 (0/1)."""
         return np.array(self._grid, dtype=np.uint8)
 
+    def get_anchor(self) -> tuple[int, int]:
+        """Zwraca punkt zaczepienia (row, col)."""
+        return self._anchor
+
 
 # ─── główny dialog ────────────────────────────────────────────────────────────
 
@@ -266,7 +314,7 @@ class CustomMorphologyDialog:
 
         self.window = tk.Toplevel(master)
         self.window.title(f"{op_label} — Element strukturyzujący")
-        self.window.geometry("540x1000")
+        self.window.geometry("540x1050")
         self.window.configure(bg="#2b2b2b")
         self.window.grab_set()
         self.window.focus_set()
@@ -287,7 +335,7 @@ class CustomMorphologyDialog:
 
         tk.Label(
             self.window,
-            text="Zaprojektuj element strukturyzujący\n(kliknij komórki, żeby je włączyć / wyłączyć)",
+            text="Zaprojektuj element strukturyzujący\n(lewy przycisk myszy: włącz/wyłącz • prawy przycisk: ustaw punkt zaczepienia)",
             font=("Consolas", 8), bg="#2b2b2b", fg="#888"
         ).pack(pady=(0, 6))
 
@@ -413,21 +461,22 @@ class CustomMorphologyDialog:
     def _update_preview(self):
         self._error_label.config(text="")
         kernel = self.editor.get_kernel()
+        anchor = self.editor.get_anchor()
         border_type = self.border_type_var.get()
         border_value = self.border_value_var.get()
 
         # --- malutki podgląd kernela ---
-        self._show_kernel_preview(kernel)
+        self._show_kernel_preview(kernel, anchor)
 
         # --- próba obliczenia wyniku ---
         try:
             if self.operation == "erode":
                 result = self.app_manager.custom_erode(
-                    self.image, kernel, border_type, border_value
+                    self.image, kernel, anchor, border_type, border_value
                 )
             else:
                 result = self.app_manager.custom_dilate(
-                    self.image, kernel, border_type, border_value
+                    self.image, kernel, anchor, border_type, border_value
                 )
             self._last_result = result
             self._show_image_preview(result)
@@ -435,24 +484,34 @@ class CustomMorphologyDialog:
             self._error_label.config(text=str(e))
             self._last_result = None
 
-    def _show_kernel_preview(self, kernel: np.ndarray):
-        """Rysuje malutki obraz kernela (białe = 1, czarne = 0)."""
+    def _show_kernel_preview(self, kernel: np.ndarray, anchor: tuple[int, int]):
+        """Rysuje malutki obraz kernela (białe = 1, czarne = 0, kolorowy = anchor)."""
         cell = 12
         h, w = kernel.shape
-        vis = np.zeros((h * cell, w * cell), dtype=np.uint8)
+        vis = np.zeros((h * cell, w * cell, 3), dtype=np.uint8)
+        
         for r in range(h):
             for c in range(w):
-                if kernel[r, c]:
+                if (r, c) == anchor:
+                    # punkt zaczepienia - pomarańczowy (aktywny) lub czerwony (nieaktywny)
+                    if kernel[r, c]:
+                        vis[r*cell:(r+1)*cell, c*cell:(c+1)*cell] = [255, 136, 0]  # pomarańczowy
+                    else:
+                        vis[r*cell:(r+1)*cell, c*cell:(c+1)*cell] = [255, 50, 50]  # czerwony
+                elif kernel[r, c]:
+                    # aktywny piksel - biały
                     vis[r*cell:(r+1)*cell, c*cell:(c+1)*cell] = 255
-        # dodaj ramki między komórkami
+                # nieaktywny pozostaje czarny
+        
+        # dodaj szare ramki między komórkami
         for i in range(h + 1):
             if i * cell < vis.shape[0]:
-                vis[i*cell, :] = 128
+                vis[i*cell, :] = [128, 128, 128]
         for j in range(w + 1):
             if j * cell < vis.shape[1]:
-                vis[:, j*cell] = 128
+                vis[:, j*cell] = [128, 128, 128]
 
-        pil_img = Image.fromarray(vis, mode="L").resize(
+        pil_img = Image.fromarray(vis, mode="RGB").resize(
             (w * cell, h * cell), Image.NEAREST
         )
         self._kernel_tk = ImageTk.PhotoImage(pil_img)
@@ -482,17 +541,18 @@ class CustomMorphologyDialog:
     def _apply(self):
         """Oblicza wynik i przekazuje do callback, potem zamyka okno."""
         kernel = self.editor.get_kernel()
+        anchor = self.editor.get_anchor()
         border_type = self.border_type_var.get()
         border_value = self.border_value_var.get()
         
         try:
             if self.operation == "erode":
                 result = self.app_manager.custom_erode(
-                    self.image, kernel, border_type, border_value
+                    self.image, kernel, anchor, border_type, border_value
                 )
             else:
                 result = self.app_manager.custom_dilate(
-                    self.image, kernel, border_type, border_value
+                    self.image, kernel, anchor, border_type, border_value
                 )
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
