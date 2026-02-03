@@ -13,6 +13,7 @@ from .segmentation_dialog import DoubleThresholdDialog, OtsuThresholdDialog, Ada
 from .histogram_dialog import StretchHistogramDialog
 from .object_analysis_dialog import ObjectAnalysisDialog
 from .inpainting_dialog import InpaintingDialog
+from .custom_morphology_dialog import CustomMorphologyDialog
 
 __all__ = [
     'ThresholdDialog',
